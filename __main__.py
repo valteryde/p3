@@ -8,6 +8,13 @@ import datetime
 import os
 import logging
 import platform
+import sys
+
+if len(sys.argv) >= 2 and sys.argv[2] == "init":
+    os.mkdir('files')
+    file = open(os.path.join('files', 'config.json'), 'w')
+    file.close()
+    os.mkdir('debug')
 
 def printState():
     state = GLOBALVARS["state"].lower()
