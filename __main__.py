@@ -126,7 +126,7 @@ def openFilesFolder():
     if platform.system() == 'Darwin':
         os.system('open {}'.format(path))
     elif platform.system() == 'Windows':
-        os.system('start {}'.format(path))
+        os.system('start files')
 
 
 if __name__ == '__main__':

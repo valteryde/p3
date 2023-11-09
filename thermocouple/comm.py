@@ -2,7 +2,6 @@
 #firmdata has to be installed on arduiono
 
 #communication.py
-from random import randint
 import logging
 from .globs import GLOBALVARS
 import time
@@ -10,7 +9,6 @@ import openpyxl as pxl
 import datetime
 import os
 import serial
-
 
 # mokeypatch (https://github.com/pyinvoke/invoke/issues/833)
 import inspect
@@ -35,8 +33,7 @@ def getNow():
     if second < 10:
         second = '0' + str(second)
 
-
-    return '{}:{}:{}'.format(str(hour), str(minute), str(second))
+    return '{}-{}-{}'.format(str(hour), str(minute), str(second))
 
 
 def handleCommunication(port): #over firmdata, much safer
@@ -65,8 +62,7 @@ def handleCommunication(port): #over firmdata, much safer
             GLOBALVARS["state"] = "Online"
 
             GLOBALVARS["temp"] = temp
-            logging.debug(temp)
-            sheet.append([now, getNow(), now - startTime, temp])
+            sheet.append([now, getNow(), now - startTime, float(temp)])
             if c % 100 == 0: 
                 workbook.save(relFilePath)
                 GLOBALVARS["last_save"] = getNow()
