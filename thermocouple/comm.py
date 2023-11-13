@@ -35,9 +35,24 @@ def getNow():
 
     return '{}-{}-{}'.format(str(hour), str(minute), str(second))
 
+def getNowDate():
+    now = datetime.datetime.now()
+    
+    year = now.year
+    month = now.month
+    date = now.day
+
+    if month < 10:
+        month = '0' + str(month)
+    
+    if date < 10:
+        date = '0' + str(date)
+
+    return '{}-{}-{}'.format(str(year), str(month), str(date))
+
 
 def handleCommunication(port): #over firmdata, much safer
-    relFilePath = os.path.join('files','tc-{}.xlsx'.format(getNow()))
+    relFilePath = os.path.join('files','tc-{}-{}.xlsx'.format(getNowDate(),getNow()))
     GLOBALVARS['output_filename'] = relFilePath
     workbook = pxl.Workbook()
     sheet = workbook.active

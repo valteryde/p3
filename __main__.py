@@ -116,7 +116,7 @@ def main():
     choice = selectionWindow('MP3 2023 Kalibrering af termisk måling',[
         "Termokobler",
         "Termisk kamera",
-        # "Simulation",
+        "Simulation",
     ])
 
     if choice[0] == 0:
