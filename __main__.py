@@ -45,7 +45,8 @@ def thermocouple():
         ("Status", printState), 
         ("Tidspunkt", getNow),
         ("Sidst gemt", lambda: GLOBALVARS["last_save"]),
-        ("Output", lambda: GLOBALVARS["output_filename"])
+        ("Output", lambda: GLOBALVARS["output_filename"]),
+        ("Antal", lambda: str(GLOBALVARS['data_points_count']))
     ])
 
 

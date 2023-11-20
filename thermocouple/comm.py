@@ -51,13 +51,21 @@ def getNowDate():
     return '{}-{}-{}'.format(str(year), str(month), str(date))
 
 
-def handleCommunication(port): #over firmdata, much safer
+def openNewSheet():
     relFilePath = os.path.join('files','tc-{}-{}.xlsx'.format(getNowDate(),getNow()))
     GLOBALVARS['output_filename'] = relFilePath
     workbook = pxl.Workbook()
     sheet = workbook.active
     sheet.append(['Epoch [s]', 'H:M:S', 'Tid siden start [s]', 'Temperatur [C]'])
+    return workbook, sheet, relFilePath
+
+
+def handleCommunication(port): #over firmdata, much safer
+    workbook, sheet, filepath = openNewSheet()
     
+    saveFreq = 100
+    restartFreq = 5000
+
     try:
         GLOBALVARS["state"] = "Starting"
         try:
@@ -78,18 +86,25 @@ def handleCommunication(port): #over firmdata, much safer
 
             GLOBALVARS["temp"] = temp
             sheet.append([now, getNow(), now - startTime, float(temp)])
-            if c % 100 == 0: 
-                workbook.save(relFilePath)
+            if c % saveFreq == 0: 
+                workbook.save(filepath)
                 GLOBALVARS["last_save"] = getNow()
             c += 1
+            GLOBALVARS['data_points_count'] = c
+
+            if c % restartFreq == 0:
+                workbook.save(filepath)
+                workbook.close()
+                workbook, sheet, filepath = openNewSheet()
+
             time.sleep(0.05)
 
     except Exception as e:
         logging.debug(e)
         GLOBALVARS["state"] = "Offline"
     
-    workbook.save(relFilePath)
-
+    workbook.save(filepath)
+    workbook.close()
 
 if __name__ == '__main__':
     handleCommunication('/dev/cu.usbmodem114401')
