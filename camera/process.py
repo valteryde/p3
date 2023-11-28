@@ -1,207 +1,592 @@
-
 import math
+import shutil
+import tqdm
+from .loader import loadASCIIFile, getSortedFolder
+from .png import createImage
 from PIL import Image
 import numpy as np
-import platform
-from tqdm import tqdm
+from math import inf
+from random import randint, shuffle
 import os
-import logging
-import glob
-from .loader import loadASCIIFile
 import openpyxl as pxl
 
-debugOn = False
+WHITE = (255,255,255,255)
+RED = (255,0,0,255)
+BLUE = (0,0,255,255)
+GREEN = (0,255,0,255)
+BLACK = (0,0,0,255)
 
-### ONLY FOR TESTING ###
-def loadImage(fname): # grayscale
-    im = Image.open(fname)
-    arr = np.array(im)
+# generate colors
+COLORS = [[randint(0,255),randint(0,255),randint(0,255),255] for _ in range(200)]
 
-    l = []
-    for i, row in enumerate(arr):
-        l.append([])
-        for j, _ in enumerate(row):
-            l[-1].append((arr[i][j][0]))
-
-    return l
-
-
-TOLERANCES = {
-    "carbon_black_temp_diffrence": 10, 
-    "background_temperature_diffrence": 100
-}
-
-WHITE = [255,255,255,255]
-BLACK = [0,0,0,255]
-RED = [255,0,0,255]
-
-BACKGROUND = 0
-SURFACE = 1
-CARBONBLACK = 2
-
-debugCount = 0
-def analyzeFrame(data, debug:bool=debugOn) -> list:
-    global debugCount
-    if debug: previewImage = [[RED for i in range(len(data[0]))] for j in range(len(data))]
-
-    mask = [[SURFACE for i in range(len(data[0]))] for j in range(len(data))]
+def saveMask(mask, fname="mask.png"):
     
-    # find hottest point from every row
-    hotRow = [max(i) for i in data]
-    hotRow.sort()
-    hotRow.reverse()
-    maxTemp = sum(hotRow[:min(len(hotRow), 20)]) / min(len(hotRow), 20)
+    imarr = []
+    for row in mask:
+        imarr.append([])
 
-    coldRow = [min(i) for i in data]
-    coldRow.sort()
-    minTemp = sum(coldRow[:min(len(coldRow), 20)]) / min(len(coldRow), 20)
+        for val in row:
 
-    # max is carbon black
-    for rowNum, row in enumerate(data):
-
-        for colNum, temp in enumerate(row):
+            color = WHITE
+            if val == -1:
+                color = BLACK
             
-            if temp > maxTemp - TOLERANCES["carbon_black_temp_diffrence"]:
-                if debug: previewImage[rowNum][colNum] = BLACK
-                mask[rowNum][colNum] = CARBONBLACK
+            elif val == 1:
+                color = RED
+            elif val == 2:
+                color = BLUE
+            elif val == 3:
+                color = GREEN
+            elif val > 3:
+                color = COLORS[val]
 
-    # min is background
-    for rowNum, row in enumerate(data):
+            imarr[-1].append(color)
 
-        for colNum, temp in enumerate(row):
+    im = Image.fromarray(np.array(imarr, np.uint8))
+    im.save(os.path.join('debug',fname))
+
+
+
+def maskGetBbox(mask, needle=0):
+    mn = [inf,inf]
+    mx = [0,0]
+    for i, row in enumerate(mask):
+        for j, val in enumerate(row):
             
-            if temp < minTemp + TOLERANCES["background_temperature_diffrence"]:
-                if debug: previewImage[rowNum][colNum] = WHITE
-                mask[rowNum][colNum] = BACKGROUND
+            if val != needle:
+                mn[0] = min(mn[0], i)
+                mn[1] = min(mn[1], j)
+                mx[0] = max(mx[0], i)
+                mx[1] = max(mx[1], j)
 
-    if debug: Image.fromarray(np.array(previewImage, np.uint8)).save(os.path.join('debug','DEBUG-{}.png'.format(debugCount)))
-    if debug: debugCount += 1
+    # apply
+    mask = [[val for val in row[mn[1]:mx[1]]] for row in mask[mn[0]:mx[0]]]
+    return mask, mn, mx
+
+
+def isolateValue(data, maxTemp, imarr=None, color=RED) -> list:
+    mask = [[0 for _ in range(len(data[0]))] for _ in range(len(data))]
+    for colNum in range(len(data[0])):
+
+        lastTemp = None
+        for rowNum in range(len(data)):
+            temp = data[rowNum][colNum]
+
+            if not lastTemp:
+                lastTemp = temp
+                continue
+
+            if maxTemp < temp:
+                if imarr: imarr[rowNum][colNum] = color
+                mask[rowNum][colNum] = 1
+
     return mask
 
 
-def createMask(files, layers:int, procent:float=0.8, debug:bool=debugOn):
-    files.sort()
+def filteroutLineNoise(mask, negative=0):
+    lineLengths = [len([val for val in row if val]) for _, row in enumerate(mask)]
+    # minLines = min(lines)
+    maxLines = max(lineLengths)
 
-    # get first 20 images to determine area
-    layerRuns = min(layers, len(files))
-    pbar = tqdm(desc="Maske",total=layerRuns)
-    masks = []
-    for file in files[:layerRuns]:
-        masks.append(analyzeFrame(loadASCIIFile(file)[0], debug=True))
-        pbar.update()
+    for rowNum, row in enumerate(mask):
+
+        colors = {} # "coolors" men egentlig marks
+
+        # hvilken farve er der mest af
+        for mark in row:
+            
+            if mark in colors:
+                colors[mark] += 1
+            else:
+                colors[mark] = 1
+
+        colors = [(color, colors[color]) for color in colors]
+
+        mostFrequentColor, lineLength = sorted(colors, key=lambda x: x[1])[-1]
+
+            # print(lineLength, maxLines * .25, lineLength < maxLines * .25)
+        if lineLength < maxLines * .90:
+            mask[rowNum] = [negative for _ in mask[rowNum]]
+        else:
+            mask[rowNum] = [mostFrequentColor for _ in mask[rowNum]]
+
+    return mask
+
+
+
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
+    try:
+        return __createMaskFromFrame(fpath, shape, folder, fingers)
+    except Exception as e:
+        pass
+
+
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
+    # make folder for debugging
+    folder = os.path.join('mask',folder)
     
-    pbar.close()
+    try:
+        os.mkdir(os.path.join('debug',folder))
+    except FileExistsError:
+        pass
 
-    # overlay and count
-    res = [[BACKGROUND for j in range(len(masks[0][0]))] for i in range(len(masks[0]))]
-    procHold = math.floor(procent * len(masks))
-    surfacePos = [math.inf, math.inf, -1, -1] #row, col, row, col
-    for row in range(len(masks[0])):
+    data, minTemp, maxTemp = loadASCIIFile(fpath)
+    startSize = (len(data[0]),len(data))
+    imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
+
+    ### STEP 1 ###
+    # get warm spots
+    diff = (maxTemp - minTemp) * 0.75
+    mask = isolateValue(data, maxTemp - diff, imarr)
+    mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
+    saveMask(mask, os.path.join(folder,'mask-1.png'))
+
+    ### STEP 2 ###
+    # find bottom and top line if is in threadshold of average line length times coeffecient
+    lineLengths = []
+    for row in mask:
+        line = [i for i in row if i]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
+
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1.25
+
+    topLineIndex = inf
+    bottomLineIndex = 0
+    for i, line in enumerate(lineLengths):
         
-        for col in range(len(masks[0][0])):
+        if line*acceptLineCoeff < avgLineWidth:
+            topLineIndex = min(i, topLineIndex)
+            bottomLineIndex = max(i, bottomLineIndex)
 
-            carbonCount = 0
-            surfaceCount = 0
-            for mask in masks:
-
-                carbonCount += mask[row][col] == CARBONBLACK
-                surfaceCount += mask[row][col] == SURFACE
-
-            if carbonCount > procHold:
-                res[row][col] = CARBONBLACK
-            
-            elif surfaceCount > procHold:
-                res[row][col] = SURFACE
-
-                surfacePos[0] = min(surfacePos[0], row)
-                surfacePos[1] = min(surfacePos[1], col)
-                surfacePos[2] = max(surfacePos[2], row)
-                surfacePos[3] = max(surfacePos[3], col)
-
-
-    # debug
-    if not debug: return res, surfacePos
-
-    debugImage = []
-    for row in res:
-        debugImage.append([])
-        for cell in row:
-
-            if cell == CARBONBLACK:
-                debugImage[-1].append(BLACK)
-            elif cell == SURFACE:
-                debugImage[-1].append(RED)
-            else:
-                debugImage[-1].append(WHITE)
-
-    if debug: Image.fromarray(np.array(debugImage, np.uint8)).save(os.path.join('debug','mask.png'))
-    return res, surfacePos
-
-
-
-def crop(data, pos):
-    return [i[pos[1]:pos[3]]  for i in data[pos[0]:pos[2]]]
-
-
-def getTempWithMask(data, mask, maskPos) -> list:
-    data = crop(data, maskPos)
-
-    carbonBlack = [0, 0]
-    surface = [0, 0]
-
-    for rowNum, row in enumerate(data):
-        for colNum, temp in enumerate(row):
-            
-            if mask[rowNum][colNum] == SURFACE:
-                carbonBlack[0] += temp
-                carbonBlack[1] += 1
-                
-            elif mask[rowNum][colNum] == CARBONBLACK:
-                surface[0] += temp
-                surface[1] += 1
-            
-            else:
-                continue
+    # get height off mask
+    pixelHeight = bottomLineIndex - topLineIndex
     
-    if carbonBlack[1] == 0 or surface[1] == 0:
+
+    ### STEP 3 ###    
+    # get left most line
+    lineLengths = []
+    for colNum in range(len(mask[0])):
+        line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
+
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1
+
+    leftLineIndex = inf
+    for i, line in enumerate(lineLengths):
+        
+        if line*acceptLineCoeff < avgLineWidth:
+            leftLineIndex = min(i, topLineIndex)
+    
+    # add
+    leftLineIndex += 20
+
+
+    ### STEP 4 ###
+    # find laser center
+    diff = (maxTemp - minTemp) * 0.1
+    mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
+    mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
+    saveMask(mask, os.path.join(folder,'mask-2.png'))
+    
+    # make lines, laser burde være en cirkel. Linjer burde være uafbrudte
+    maxLine = (0,0, 0) # (pos, val, center)
+    for rowNum, row in enumerate(mask):
+        
+        lineLength = 0
+        for colNum, val in enumerate(row):
+
+            if lineLength > 0 and not val: # startet og afbrudt
+                break
+            
+            if val: lineLength += 1
+
+        if lineLength > maxLine[1]:
+            maxLine = (rowNum,lineLength, colNum-lineLength//2)
+
+    ### STEP 5 ###
+    # assume length 
+    ratio = shape[0] / shape[1]
+    topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
+    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio), int(warmMaskMin[0] + pixelHeight))
+    
+    im = Image.fromarray(np.array(imarr, np.uint8))
+    im = im.crop((*topPos, *bottomPos))
+    im.save(os.path.join('debug',folder,'test.png'))
+
+    # im = Image.open('irdata_0011_0100.png')
+    # im = im.crop((*topPos, *bottomPos))
+    # im.save(os.path.join('files','test-img-crop.png'))
+
+    # half 
+    topPos = (int(warmMaskMin[1]+leftLineIndex+(pixelHeight * ratio)//2), int(warmMaskMin[0]))
+
+    # add padding
+    padding = 5
+    topPos = (topPos[0]+padding, topPos[1]+padding)
+    bottomPos = (bottomPos[0]-padding, bottomPos[1]-padding)
+    offset = topPos
+
+    # im = Image.open('irdata_0011_0100.png')
+    # im = im.crop((*topPos, *bottomPos))
+    # im.save('test-img-crop-right.png')
+
+    ### STEP 6 ###
+    # get carbon black / metallic surface
+    data = [[val for val in row[topPos[0]:bottomPos[0]]] for row in data[topPos[1]:bottomPos[1]]]
+    # data.reverse() # NOTE: SLET
+    mask = [[0 for _ in range(len(data[0]))] for _ in range(len(data))]
+    for colNum in range(len(data[0])):
+        
+        line = [data[rowNum][colNum] for rowNum in range(len(data))]
+        avgTemp = sum(line) / len(line)
+        # maxTemp = max(line)
+        # minTemp = min(line)
+
+        # boxNum = 1
+        for rowNum in range(len(data)):
+            temp = data[rowNum][colNum]                
+
+            if temp > avgTemp:
+            
+                # if rowNum > 0 and mask[rowNum-1][colNum] == 0:
+                #     boxNum += 1
+                
+                mask[rowNum][colNum] = 1 # boxNum
+                
+        # print(minTemp, avgTemp, maxTemp)
+    
+    # clean up
+
+    # mask.reverse() # NOTE: SLET
+    saveMask(mask, os.path.join(folder,'mask-area.png'))
+
+    ### STEP 7 ###
+    # tjek hvilke linjer der er flest på
+    # tag linjerne hvor der er 90% af den længte linje
+    # tæl bokse
+
+    # split
+    # intervals = []
+    # lastIntervalValue = -1
+    # for rowNum, row in enumerate(mask):
+        
+    #     stopped = False
+    #     for colNum, val in enumerate(row):
+            
+    #         if val:
+    #             stopped = True
+    #             break
+        
+    #     if not stopped: #guardclause
+    #         continue
+        
+    #     if len(intervals) > 0 and lastIntervalValue + 1 == rowNum:
+    #         lastIntervalValue = rowNum
+    #         continue
+
+    #     intervals.append(rowNum)
+    #     lastIntervalValue = rowNum
+
+    # intervals.append(len(mask))
+
+    # linjer
+    # mask = [[0 for _ in range(len(data[0]))] for _ in range(len(data))]
+    # for i in range(len(intervals)-1):
+    filteroutLineNoise(mask, 0)
+
+    saveMask(mask, os.path.join(folder,'mask-filter-noise.png'))
+
+    # count boxes
+    box = 0
+    lastMark = inf
+    for row in mask:
+        mark = row[0]
+
+        if mark != lastMark: #change
+            box += 1
+        
+        lastMark = mark
+    
+    # rule
+    if box != fingers:
         return None
 
-    return carbonBlack[0]/carbonBlack[1], surface[0]/surface[1]
-
-
-def loadASCIIFile(*args):
-    return [loadImage('test.png')]
-
-
-def analyzeFromFolder(path):
+    # saveMask(mask, 'mask-box.png')
     
-    files = glob.glob(os.path.join(path,'*.asc'))
-    mask, maskPos = createMask(files, 20)
+    # add mask into full context
+    fullmask = [[-1 for _ in range(startSize[0])] for _ in range(startSize[1])]
 
-    maskPos = [151, 120, 393, 387]
-    pbar = tqdm(desc="Temperatur",total=len(files))
+    for row in range(startSize[1]):
 
-    res = []
-    for file in files:
-        res.append((os.path.split(file)[1],getTempWithMask(loadASCIIFile(file)[0], mask, maskPos)))
-        pbar.update()
+        if not(offset[1] < row < offset[1]+len(mask)):
+            continue
+        
+        for col in range(offset[0], offset[0]+len(mask[0])):
+            fullmask[row][col] = mask[row-offset[1]][col-offset[0]]
+
+    saveMask(fullmask, os.path.join(folder,'mask-full.png'))
+
+    return fullmask
+
+
+def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
+
+    createNewFolder(os.path.join('debug','mask'))
+
+    files = getSortedFolder(os.path.join(fpath, '*.asc'))
+
+    files = files[round(len(files)*.2):round(len(files)*.8)]
+
+    # hvis en frame er dødt skal alt nok gå
+    # da vi tager 10 forskellige frames og laver masker til alle
+    # så burde alt andet gå mega stærkt
+    
+    # create mask
+    masks = []
+    pbar = tqdm.tqdm(total=maskheapsize, desc="Laver maske")
+    i = 0
+    c = 0
+    while c < maskheapsize:
+        file = files[randint(0,len(files)-1)]
+        i += 1
+        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
+        masks.append(mask)
+        
+        if mask:
+            pbar.update()
+            c += 1
 
     pbar.close()
 
-    # save to excel
-    # Start by opening the spreadsheet and selecting the main sheet
+    # filter masks
+    # print('\033[93m','{} Bad frame, results may be inaccurate'.format(len([mask for mask in masks if not mask])), '\033[0m')
+    masks = [mask for mask in masks if mask]
+
+    # overlay masks
+    fmask = [[{0:0} for j in i] for i in masks[0]]
+    for rowNum, row in enumerate(fmask):
+
+        for colNum in range(len(row)):
+            
+            for mask in masks:
+
+                val = mask[rowNum][colNum]
+                mark = fmask[rowNum][colNum]
+
+                if val in mark.keys():
+                    mark[val] += 1
+
+                else:
+                    mark[val] = 0
+
+
+    mask = [[0 for j in i] for i in masks[0]]
+    # overlay
+    for rowNum, row in enumerate(mask):
+
+        for colNum in range(len(row)):
+
+            mark = fmask[rowNum][colNum]
+            maxKey = max([(mark[key], key) for key in mark], key=lambda x: x[0])
+            mask[rowNum][colNum] = maxKey[1]
+
+    saveMask(mask, 'mask.png')
+
+    # count boxes and add padding
+    box = 0
+    cmask, offset, _ = maskGetBbox(mask, -1)
+    filteroutLineNoise(cmask)
+    newmask = [[] for _ in cmask]
+    lastMark = None
+    maxPadding = 20
+    lastChange = 0
+    for rowNum, row in enumerate(cmask):
+        
+        mark = row[0]
+
+        if mark != lastMark: #change
+            box += 1
+
+            if lastChange != rowNum:
+                
+                padding = min(maxPadding, round(abs(rowNum - lastChange) * .3))
+
+                for i in range(lastChange, lastChange+padding):
+                    newmask[i] = [0 for _ in row]
+                for i in range(rowNum-padding, rowNum):
+                    newmask[i] = [0 for _ in row]
+
+                lastChange = rowNum
+
+        newmask[rowNum] = [box for _ in row]
+        lastMark = mark
+
+    # add last padding and last box
+    padding = min(maxPadding, round(abs(rowNum - lastChange) * .2))
+    for i in range(lastChange, lastChange+padding):
+        newmask[i] = [0 for _ in row]
+    for i in range(rowNum-padding, rowNum+1):
+        newmask[i] = [0 for _ in row]
+
+    mask = newmask
+
+    saveMask(mask, 'mask-cato.png')
+
+    return mask, offset
+
+
+def getTempFromFrameWithMask(fpath, mask, maskpos):
+    try:
+        return __getTempFromFrameWithMask(fpath, mask, maskpos)
+    except Exception as e:
+        print('\033[93m','Bad frame, skipping {}'.format(fpath), '\033[0m')
+
+
+def __getTempFromFrameWithMask(fpath, mask, maskpos):
+    data, minTemp, maxTemp = loadASCIIFile(fpath)
     
-    pathsplit = path.split(os.path.sep)
-    basepath = os.path.sep.join(pathsplit[:-1])
-    outputFileName = 'output-{}.xlsx'.format(pathsplit[-1])
-    outPutPath = os.path.join(basepath, outputFileName)
+    temps = {}
+    img = [[0 for _ in row] for row in mask]
+    for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
+        
+        temp = {}
+        
+        for rowNum in range(maskpos[0], len(mask)+maskpos[0]):
+            
+            mark = mask[rowNum-maskpos[0]][colNum-maskpos[1]]
+            
+            if mark not in temp.keys(): temp[mark] = [0,0]
+
+            temp[mark][0] += 1
+            temp[mark][1] += data[rowNum][colNum]
+            if mark == 5:
+                img[rowNum-maskpos[0]][colNum-maskpos[1]] = data[rowNum][colNum]
+
+        temps[colNum-maskpos[1]] = temp
+
+    # calculate average
+    for key in temps:
+        
+        for i in temps[key]:
+            temps[key][i] = temps[key][i][1] / temps[key][i][0]
+
+    # slet
+    # im = Image.fromarray(mapColor(img, minTemp, maxTemp))
+    # im.transpose(2)
+    # im.show()
+
+    return temps
+
+def rule(ts) -> list:
+    res = []
+
+    for x in ts:
+        
+        r = []
+        for key in sorted(ts[x].keys()): # alle frames burde have lige mange keys, da de kører samme maske
+            if key == 0: continue # ingen grund til at tage padding imellem med
+
+            r.append(ts[x][key])
+        res.append(r)
+
+    return res
+
+
+def get_color(colorRGBA1, colorRGBA2):
+    #https://stackoverflow.com/questions/52992900/how-to-blend-two-rgb-colors-front-and-back-based-on-their-alpha-channels
+    alpha = 255 - ((255 - colorRGBA1[3]) * (255 - colorRGBA2[3]) / 255)
+    red   = (colorRGBA1[0] * (255 - colorRGBA2[3]) + colorRGBA2[0] * colorRGBA2[3]) / 255
+    green = (colorRGBA1[1] * (255 - colorRGBA2[3]) + colorRGBA2[1] * colorRGBA2[3]) / 255
+    blue  = (colorRGBA1[2] * (255 - colorRGBA2[3]) + colorRGBA2[2] * colorRGBA2[3]) / 255
+    return (int(red), int(green), int(blue), int(alpha))
+
+
+def createPreviewMaskImage(mask, maskpos, file, outputfolder='debug'):
+    fname = createImage(outputfolder, file)
+
+    im = Image.open(fname)
+    imarr = np.array(im)
+    im.close()
+    os.remove(fname)
+
+    for rowNum, row in enumerate(imarr):
+
+        if not(maskpos[0] < rowNum < maskpos[0]+len(mask)):
+            continue
+
+        for colNum, color in enumerate(row):
+
+            if not(maskpos[1] < colNum < maskpos[1]+len(mask[0])):
+                continue
+
+            if mask[rowNum - maskpos[0]][colNum - maskpos[1]] == 0:
+                continue
+
+            cl = (255,0,0,100)
+
+            imarr[rowNum][colNum] = get_color(color, cl)
+
+    Image.fromarray(imarr).save(os.path.join(outputfolder,os.path.split(file)[-1].replace('.asc', '.png')))
+
+
+def createNewFolder(folder):
+    try:
+        shutil.rmtree(folder)
+    except FileNotFoundError:
+        pass
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
+
+
+def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10) -> list:
+    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+    files = getSortedFolder(os.path.join(fpath, '*.asc'))
+    pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
+
+    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+    createNewFolder(outputfolder)
+
     workbook = pxl.Workbook()
     sheet = workbook.active
+    table = []
+    
+    freq = 10
+    saveFreq = freq*1000
+    previewFreq = 1000
 
-    for name, temp in res:
-        if not temp: continue
-        sheet.append([name, *temp])
+    for i, file in enumerate(files):
+        pbar.update()
 
-    # Save the spreadsheet
-    workbook.save(filename=outPutPath) # not saving the correct place, FIXED
-    print('Output: {}'.format(outPutPath))
+        if (i+1) % saveFreq == 0:
+            workbook.close()
+            workbook.save(os.path.join(outputfolder,str(int(i/saveFreq))+'.xlsx'))
+            workbook = pxl.Workbook()
+            sheet = workbook.active
+        
+        if i % previewFreq == 0:
+            createPreviewMaskImage(mask, maskpos,file, os.path.join('debug', 'mask'))
+
+        if not (i % freq == 0):
+            continue
+
+        res = getTempFromFrameWithMask(file, mask, maskpos)
+        r = rule(res)
+        for o in r: sheet.append([*o])
+        for o in r: table.append([*o])
+
+    pbar.close()
+
+    workbook.save(os.path.join(outputfolder,str(math.ceil(i/saveFreq))+'.xlsx'))
+    workbook.close()
+
+    print('Output:', outputfolder)
+
+    return table

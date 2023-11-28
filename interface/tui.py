@@ -11,7 +11,6 @@ logging.basicConfig(filename=os.path.join('debug','log.log'),
                     datefmt='%H:%M:%S',
                     level=logging.DEBUG)
 
-
 def __selectionWindow(stdscr, title:str, selections:list):
 
     curses.curs_set(0)
@@ -83,6 +82,7 @@ def __selectionWindow(stdscr, title:str, selections:list):
 
     return (cursor, selections[cursor])
 
+
 def selectionWindow(title:str, selections:list):
     return wrapper(__selectionWindow, title, selections)
 
@@ -105,8 +105,6 @@ def __displayData(stdscr, data:list):
         "WHITE":5,
         "YELLOW": 6,
     }
-
-
 
     while True:
         stdscr.clear()

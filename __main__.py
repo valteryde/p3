@@ -3,18 +3,17 @@ from interface import selectionWindow, displayData
 from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
 from camera import analyzeFromFolder, convertFolder
+from camera import convertFolder
+from test import main as test
 from _thread import start_new_thread
 import datetime
 import os
 import logging
 import platform
 import sys
+import math
+import psutil
 
-if len(sys.argv) >= 2 and sys.argv[2] == "init":
-    os.mkdir('files')
-    file = open(os.path.join('files', 'config.json'), 'w')
-    file.close()
-    os.mkdir('debug')
 
 def printState():
     state = GLOBALVARS["state"].lower()
@@ -43,12 +42,16 @@ def thermocouple():
     displayData([
         ("Temperatur", lambda: GLOBALVARS["temp"]), 
         ("Status", printState), 
-        ("Tidspunkt", getNow),
+        ("Tidspunkt", lambda: getNow(True, ':')),
         ("Sidst gemt", lambda: GLOBALVARS["last_save"]),
         ("Output", lambda: GLOBALVARS["output_filename"]),
-        ("Antal", lambda: str(GLOBALVARS['data_points_count']))
+        ("Antal", lambda: str(math.floor(GLOBALVARS['data_points_count']/100)/10)+'k'),
+        ("CPU Procent", lambda: str(psutil.cpu_percent())),
+        # ("Hukkomelse brugt", lambda: str(psutil.virtual_memory().percent)),
+        ("Hukkomelse avalaibale", lambda: str(round(psutil.virtual_memory().available * 100 / psutil.virtual_memory().total, 4))),
+        ("Hukkomelse brugt", lambda: str(psutil.Process().memory_info().rss / (1024 * 1024)))
     ])
-
+    # dict(psutil.virtual_memory()._asdict())
 
 def cameraGetTemperatures():
     basepath = 'files'
@@ -70,7 +73,7 @@ def cameraGetTemperatures():
     
     else: #folder
         os.system('clear')
-        analyzeFromFolder(os.path.join(basepath,choice[1]))
+        analyzeFromFolder(os.path.join(basepath,choice[1]), 'files')
         return True
 
 
@@ -138,4 +141,17 @@ def openFilesFolder():
 
 
 if __name__ == '__main__':
-    main()
+    # init
+    if len(sys.argv) >= 2 and sys.argv[1] == "init":
+        os.mkdir('files')
+        file = open(os.path.join('files', 'config.json'), 'w')
+        file.close()
+        os.mkdir('debug')
+
+    # test
+    if len(sys.argv) >= 2 and sys.argv[1] == "test":
+        test()
+
+    # normal
+    else:
+        main()

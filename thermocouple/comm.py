@@ -17,12 +17,13 @@ if not hasattr(inspect, 'getargspec'):
     inspect.getargspec = inspect.getfullargspec
 
 
-def getNow():
+def getNow(mili=False, sep="-"):
     now = datetime.datetime.now()
     
     hour = now.hour
     minute = now.minute
     second = now.second
+    mili = round(now.microsecond/10000)
 
     if hour < 10:
         hour = '0' + str(hour)
@@ -33,7 +34,13 @@ def getNow():
     if second < 10:
         second = '0' + str(second)
 
-    return '{}-{}-{}'.format(str(hour), str(minute), str(second))
+    if mili < 10:
+        mili = '0' + str(mili)
+
+
+    if mili:
+        return sep.join([str(hour), str(minute), str(second), str(mili)])
+    return sep.join([str(hour), str(minute), str(second)])
 
 def getNowDate():
     now = datetime.datetime.now()
@@ -102,7 +109,9 @@ def handleCommunication(port): #over firmdata, much safer
     except Exception as e:
         logging.debug(e)
         GLOBALVARS["state"] = "Offline"
+        ser.close()
     
+    ser.close()
     workbook.save(filepath)
     workbook.close()
 

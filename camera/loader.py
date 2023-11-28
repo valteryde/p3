@@ -1,5 +1,6 @@
 
 import math
+import glob, os
 
 def loadASCIIFile(fileName:str) -> list:
     file = open(fileName, 'rb')
@@ -27,3 +28,15 @@ def loadASCIIFile(fileName:str) -> list:
     data.pop(-1)
 
     return data, lowestTemp, highestTemp
+
+
+def getSortedFolder(pattern):
+    files = glob.glob(pattern)
+    fileKeyList = []
+    for file in files:
+        fname = os.path.split(file)[-1] #index also == 1
+        fname = ''.join([i for i in fname if i in '0123456789'])
+        if not fname:
+            fname = '-1'
+        fileKeyList.append((int(fname.split('_')[0]),file))
+    return [i[1] for i in sorted(fileKeyList, key=lambda x: x[0])]
