@@ -101,6 +101,7 @@ def cameraGetTemperatureManual():
         b = int(input('Bund: '))
         l = int(input('Venstre: '))
         r = int(input('Højre: '))
+        # t, l, b, r = 116, 97, 325, 498
         analyzeFromFolder(os.path.join(basepath,choice[1]), 'files', maskpos=[[l,r], [t,b]])
         return True
 

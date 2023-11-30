@@ -117,7 +117,7 @@ def filteroutLineNoise(mask, negative=0):
 def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4, maskpos=None):
     try:
         return __createMaskFromFrame(fpath, shape, folder, fingers, maskpos)
-    except Exception as e:
+    except ImportError:#Exception as e:
         pass
 
 
@@ -133,71 +133,77 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
     data, minTemp, maxTemp = loadASCIIFile(fpath)
     startSize = (len(data[0]),len(data))
     imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
+    pad = 10
+    maskPos[0] = [maskPos[0][0]-pad, maskPos[0][1]+pad]
+    maskPos[1] = [maskPos[1][0]-pad, maskPos[1][1]+pad]
+    data = [[val for val in row[maskPos[0][0]:maskPos[0][1]]] for row in data[maskPos[1][0]:maskPos[1][1]]]
+
 
     ### STEP 1 ###
     # get warm spots
-    if not maskPos:
-        diff = (maxTemp - minTemp) * 0.75
-        mask = isolateValue(data, maxTemp - diff, imarr)
-        mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
-        saveMask(mask, os.path.join(folder,'mask-1.png'))
+    diff = (maxTemp - minTemp) * 0.75
+    mask = isolateValue(data, maxTemp - diff, imarr)
+    mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
+    saveMask(mask, os.path.join(folder,'mask-1.png'))
 
-        ### STEP 2 ###
-        # find bottom and top line if is in threadshold of average line length times coeffecient
-        lineLengths = []
-        for row in mask:
-            line = [i for i in row if i]
-            lineLength = len(line)
-            if lineLength > 5: #filter out dead pixels
-                lineLengths.append(lineLength)
+    ### STEP 2 ###
+    # find bottom and top line if is in threadshold of average line length times coeffecient
+    lineLengths = []
+    for row in mask:
+        line = [i for i in row if i]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
 
-        avgLineWidth = sum(lineLengths) / len(lineLengths)
-        acceptLineCoeff = 1.25
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1.25
 
-        topLineIndex = inf
-        bottomLineIndex = 0
-        for i, line in enumerate(lineLengths):
+    topLineIndex = inf
+    bottomLineIndex = 0
+    for i, line in enumerate(lineLengths):
             
-            if line*acceptLineCoeff < avgLineWidth:
-                topLineIndex = min(i, topLineIndex)
-                bottomLineIndex = max(i, bottomLineIndex)
+        if line*acceptLineCoeff < avgLineWidth:
+            topLineIndex = min(i, topLineIndex)
+            bottomLineIndex = max(i, bottomLineIndex)
 
-        # get height off mask
-        pixelHeight = bottomLineIndex - topLineIndex
+    # get height off mask
+    pixelHeight = bottomLineIndex - topLineIndex
         
 
-        ### STEP 3 ###    
-        # get left most line
-        lineLengths = []
-        for colNum in range(len(mask[0])):
-            line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
-            lineLength = len(line)
-            if lineLength > 5: #filter out dead pixels
-                lineLengths.append(lineLength)
+    ### STEP 3 ###    
+    # get left most line
+    lineLengths = []
+    for colNum in range(len(mask[0])):
+        line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
 
-        avgLineWidth = sum(lineLengths) / len(lineLengths)
-        acceptLineCoeff = 1
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1
 
-        leftLineIndex = inf
-        for i, line in enumerate(lineLengths):
+    leftLineIndex = inf
+    for i, line in enumerate(lineLengths):
             
-            if line*acceptLineCoeff < avgLineWidth:
-                leftLineIndex = min(i, topLineIndex)
+        if line*acceptLineCoeff < avgLineWidth:
+            leftLineIndex = min(i, topLineIndex)
         
-        # add
-        leftLineIndex += 20
+    # add
+    leftLineIndex += 20
 
-
-        ### STEP 4 ###
-        # find laser center
-        diff = (maxTemp - minTemp) * 0.1
-        mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
-        mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
-        saveMask(mask, os.path.join(folder,'mask-2.png'))
+    ### STEP 4 ###
+    # find laser center
+    diff = (maxTemp - minTemp) * 0.1
+    mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
+    mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
     
-    else:
-        warmMaskMin = (maskPos[0][0], maskPos[1][0])
-        mask = [[val for val in row[maskPos[1][0]:maskPos[1][1]]] for row in mask[maskPos[0][0]:maskPos[0][1]]]
+    # else:
+    #     warmMaskMin = (maskPos[0][0], maskPos[1][0])
+    #     leftLineIndex = maskPos[0][0]
+    #     pixelHeight = maskPos[1][1] - maskPos[1][0]
+    #     mask = [[1 for val in row[maskPos[0][0]:maskPos[0][1]]] for row in data[maskPos[1][0]:maskPos[1][1]]]
+
+    saveMask(mask, os.path.join(folder,'mask-2.png'))
 
 
     # make lines, laser burde være en cirkel. Linjer burde være uafbrudte
