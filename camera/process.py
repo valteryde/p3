@@ -2,13 +2,19 @@ import math
 import shutil
 import tqdm
 from .loader import loadASCIIFile, getSortedFolder
-from .png import createImage
+from .png import createImage, loadFile, mapColor
 from PIL import Image
 import numpy as np
 from math import inf
 from random import randint, shuffle
 import os
 import openpyxl as pxl
+from .gui import choiceMask
+from _thread import start_new_thread
+import time
+import sys
+import pyglet as pg
+
 
 WHITE = (255,255,255,255)
 RED = (255,0,0,255)
@@ -114,14 +120,14 @@ def filteroutLineNoise(mask, negative=0):
 
 
 
-def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4, maskpos=None):
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
     try:
-        return __createMaskFromFrame(fpath, shape, folder, fingers, maskpos)
-    except ImportError:#Exception as e:
+        return __createMaskFromFrame(fpath, shape, folder, fingers)
+    except Exception as e:
         pass
 
 
-def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     # make folder for debugging
     folder = os.path.join('mask',folder)
     
@@ -133,10 +139,6 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
     data, minTemp, maxTemp = loadASCIIFile(fpath)
     startSize = (len(data[0]),len(data))
     imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
-    pad = 10
-    maskPos[0] = [maskPos[0][0]-pad, maskPos[0][1]+pad]
-    maskPos[1] = [maskPos[1][0]-pad, maskPos[1][1]+pad]
-    data = [[val for val in row[maskPos[0][0]:maskPos[0][1]]] for row in data[maskPos[1][0]:maskPos[1][1]]]
 
 
     ### STEP 1 ###
@@ -197,14 +199,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
     mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
     mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
     
-    # else:
-    #     warmMaskMin = (maskPos[0][0], maskPos[1][0])
-    #     leftLineIndex = maskPos[0][0]
-    #     pixelHeight = maskPos[1][1] - maskPos[1][0]
-    #     mask = [[1 for val in row[maskPos[0][0]:maskPos[0][1]]] for row in data[maskPos[1][0]:maskPos[1][1]]]
-
     saveMask(mask, os.path.join(folder,'mask-2.png'))
-
 
     # make lines, laser burde være en cirkel. Linjer burde være uafbrudte
     maxLine = (0,0, 0) # (pos, val, center)
@@ -347,7 +342,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
     return fullmask
 
 
-def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10, maskpos=None) -> None:
+def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
 
     createNewFolder(os.path.join('debug','mask'))
 
@@ -367,7 +362,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10, maskpos
     while c < maskheapsize:
         file = files[randint(0,len(files)-1)]
         i += 1
-        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)), maskpos=maskpos)
+        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
         masks.append(mask)
         
         if mask:
@@ -558,8 +553,8 @@ def createNewFolder(folder):
         pass
 
 
-def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10, maskpos=None) -> list:
-    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize, maskpos)
+def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10) -> list:
+    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
     files = getSortedFolder(os.path.join(fpath, '*.asc'))
     pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
 
@@ -602,3 +597,114 @@ def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskhe
     print('Output:', outputfolder)
 
     return table
+
+
+global_mask = [None]
+
+def drawBox(mask, x, y, width, height, cl=1) -> list:
+    
+    for rowNum, row in enumerate(mask):
+
+        if not (y < rowNum < y + height):
+            continue
+
+        for colNum in range(len(row)):
+
+            if x < colNum < x + width:
+                mask[rowNum][colNum] = cl
+
+
+def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
+    
+    while not global_mask[0]:
+        time.sleep(1)
+        pass
+    
+    if global_mask[0] == -1:
+        return
+
+    data = loadFile(files[0])[0]
+    mask = [[0 for _ in row] for row in data]
+
+    # create mask
+    boxes = global_mask[0]
+
+    res = []
+    xborder = [-inf,inf]
+    yborder = [inf, -inf]
+    for i,box in enumerate(boxes):
+        x1 = min(box.x, box.x+box.width)
+        x2 = max(box.x, box.x+box.width)
+        y1 = min(box.y, box.y+box.height)
+        y2 = max(box.y, box.y+box.height)
+
+        drawBox(mask, x1, y1, x2-x1, y2-y1, i+1)
+
+        yborder = (
+            min(yborder[0], y1, y2),
+            max(yborder[1], y1, y2),
+        )
+
+        xborder = (
+            max(xborder[0], x1),
+            min(xborder[1], x2),
+        )
+
+    saveMask(mask, 'mask-test-manual.png')
+    mask = [[val for val in row[xborder[0]:xborder[1]]] for row in mask[yborder[0]:yborder[1]]]
+    saveMask(mask, 'mask-test-manual-crop.png')
+    maskpos = yborder[0], xborder[0]
+    print(maskpos, xborder, yborder)
+    
+
+    pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
+
+    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+    createNewFolder(outputfolder)
+
+    workbook = pxl.Workbook()
+    sheet = workbook.active
+    table = []
+    
+    freq = 10
+    saveFreq = freq*1000
+    previewFreq = 1000
+
+    for i, file in enumerate(files):
+        pbar.update()
+
+        if (i+1) % saveFreq == 0:
+            workbook.close()
+            workbook.save(os.path.join(outputfolder,str(int(i/saveFreq))+'.xlsx'))
+            workbook = pxl.Workbook()
+            sheet = workbook.active
+        
+        if i % previewFreq == 0:
+            createPreviewMaskImage(mask, maskpos,file, os.path.join('debug', 'mask'))
+
+        if not (i % freq == 0):
+            continue
+
+        res = getTempFromFrameWithMask(file, mask, maskpos)
+        r = rule(res)
+        for o in r: sheet.append([*o])
+        for o in r: table.append([*o])
+
+    pbar.close()
+
+    workbook.save(os.path.join(outputfolder,str(math.ceil(i/saveFreq))+'.xlsx'))
+    workbook.close()
+
+    print('Output:', outputfolder)
+
+    pg.app.exit()
+    return table
+
+
+def analyzeFromFolderManual(fpath:str, baseoutputfolder:str="files") -> list:
+    # mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+    files = getSortedFolder(os.path.join(fpath, '*.asc'))
+
+    start_new_thread(analyzeFromFolderHeavyWork, (files,baseoutputfolder, fpath))
+
+    choiceMask(files[randint(0,len(files)-1)], global_mask)

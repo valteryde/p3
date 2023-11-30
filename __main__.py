@@ -2,8 +2,8 @@
 from interface import selectionWindow, displayData
 from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
-from camera import analyzeFromFolder, convertFolder
-from camera import convertFolder
+from camera import analyzeFromFolder
+from camera import convertFolder, analyzeFromFolderManual
 from test import main as test
 from _thread import start_new_thread
 import datetime
@@ -102,7 +102,7 @@ def cameraGetTemperatureManual():
         l = int(input('Venstre: '))
         r = int(input('Højre: '))
         # t, l, b, r = 116, 97, 325, 498
-        analyzeFromFolder(os.path.join(basepath,choice[1]), 'files', maskpos=[[l,r], [t,b]])
+        analyzeFromFolderManual(os.path.join(basepath,choice[1]), 'files', maskpos=[[l,r], [t,b]])
         return True
 
 

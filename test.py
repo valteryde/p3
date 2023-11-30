@@ -1,5 +1,5 @@
 
-from camera import analyzeFromFolder
+from camera import analyzeFromFolderManual
 
 # def main():
 #     # convertFolder('files/data-2')
@@ -10,4 +10,4 @@ from camera import analyzeFromFolder
 #     res = analyzeFromFolder('files/data-2', 'test.xlsx', 10)
 
 def main():
-    analyzeFromFolder('files/Forsøg 13')
+    analyzeFromFolderManual('files/Forsøg 13')
