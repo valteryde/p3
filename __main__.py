@@ -97,12 +97,12 @@ def cameraGetTemperatureManual():
     
     else: #folder
         #os.system('clear')
-        t = int(input('Top: '))
-        b = int(input('Bund: '))
-        l = int(input('Venstre: '))
-        r = int(input('Højre: '))
+        # t = int(input('Top: '))
+        # b = int(input('Bund: '))
+        # l = int(input('Venstre: '))
+        # r = int(input('Højre: '))
         # t, l, b, r = 116, 97, 325, 498
-        analyzeFromFolderManual(os.path.join(basepath,choice[1]), 'files', maskpos=[[l,r], [t,b]])
+        analyzeFromFolderManual(os.path.join(basepath,choice[1]), 'files')
         return True
 
 

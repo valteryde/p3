@@ -635,8 +635,8 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
     for i,box in enumerate(boxes):
         x1 = min(box.x, box.x+box.width)
         x2 = max(box.x, box.x+box.width)
-        y1 = min(box.y, box.y+box.height)
-        y2 = max(box.y, box.y+box.height)
+        y1 = min(len(mask)-box.y, len(mask)-box.y-box.height) #pyglet coord -> pixel coord
+        y2 = max(len(mask)-box.y, len(mask)-box.y-box.height)
 
         drawBox(mask, x1, y1, x2-x1, y2-y1, i+1)
 
@@ -654,8 +654,6 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
     mask = [[val for val in row[xborder[0]:xborder[1]]] for row in mask[yborder[0]:yborder[1]]]
     saveMask(mask, 'mask-test-manual-crop.png')
     maskpos = yborder[0], xborder[0]
-    print(maskpos, xborder, yborder)
-    
 
     pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
 

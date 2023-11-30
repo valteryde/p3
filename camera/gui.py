@@ -114,6 +114,4 @@ def choiceMask(file, res):
     def on_close():
         res[0] = -1
 
-
     pg.app.run()
-    print('hejsa')
