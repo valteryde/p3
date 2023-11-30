@@ -552,14 +552,9 @@ def createNewFolder(folder):
     except FileExistsError:
         pass
 
-
-def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10) -> list:
-    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
-    files = getSortedFolder(os.path.join(fpath, '*.asc'))
-    pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
-
-    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     createNewFolder(outputfolder)
+    pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
 
     workbook = pxl.Workbook()
     sheet = workbook.active
@@ -598,6 +593,15 @@ def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskhe
 
     return table
 
+
+def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10) -> list:
+    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+    files = getSortedFolder(os.path.join(fpath, '*.asc'))
+
+    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+    createNewFolder(outputfolder)
+    retrieveTempFromFiles(files, mask, maskpos)
+    
 
 global_mask = [None]
 
@@ -655,48 +659,10 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
     saveMask(mask, 'mask-test-manual-crop.png')
     maskpos = yborder[0], xborder[0]
 
-    pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
-
     outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
-    createNewFolder(outputfolder)
-
-    workbook = pxl.Workbook()
-    sheet = workbook.active
-    table = []
+    retrieveTempFromFiles(files, mask, maskpos, outputfolder)
     
-    freq = 10
-    saveFreq = freq*1000
-    previewFreq = 1000
-
-    for i, file in enumerate(files):
-        pbar.update()
-
-        if (i+1) % saveFreq == 0:
-            workbook.close()
-            workbook.save(os.path.join(outputfolder,str(int(i/saveFreq))+'.xlsx'))
-            workbook = pxl.Workbook()
-            sheet = workbook.active
-        
-        if i % previewFreq == 0:
-            createPreviewMaskImage(mask, maskpos,file, os.path.join('debug', 'mask'))
-
-        if not (i % freq == 0):
-            continue
-
-        res = getTempFromFrameWithMask(file, mask, maskpos)
-        r = rule(res)
-        for o in r: sheet.append([*o])
-        for o in r: table.append([*o])
-
-    pbar.close()
-
-    workbook.save(os.path.join(outputfolder,str(math.ceil(i/saveFreq))+'.xlsx'))
-    workbook.close()
-
-    print('Output:', outputfolder)
-
     pg.app.exit()
-    return table
 
 
 def analyzeFromFolderManual(fpath:str, baseoutputfolder:str="files") -> list:
