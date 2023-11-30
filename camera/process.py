@@ -114,14 +114,14 @@ def filteroutLineNoise(mask, negative=0):
 
 
 
-def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4, maskpos=None):
     try:
-        return __createMaskFromFrame(fpath, shape, folder, fingers)
+        return __createMaskFromFrame(fpath, shape, folder, fingers, maskpos)
     except Exception as e:
         pass
 
 
-def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, maskPos=None):
     # make folder for debugging
     folder = os.path.join('mask',folder)
     
@@ -136,64 +136,70 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     ### STEP 1 ###
     # get warm spots
-    diff = (maxTemp - minTemp) * 0.75
-    mask = isolateValue(data, maxTemp - diff, imarr)
-    mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
-    saveMask(mask, os.path.join(folder,'mask-1.png'))
+    if not maskPos:
+        diff = (maxTemp - minTemp) * 0.75
+        mask = isolateValue(data, maxTemp - diff, imarr)
+        mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
+        saveMask(mask, os.path.join(folder,'mask-1.png'))
 
-    ### STEP 2 ###
-    # find bottom and top line if is in threadshold of average line length times coeffecient
-    lineLengths = []
-    for row in mask:
-        line = [i for i in row if i]
-        lineLength = len(line)
-        if lineLength > 5: #filter out dead pixels
-            lineLengths.append(lineLength)
+        ### STEP 2 ###
+        # find bottom and top line if is in threadshold of average line length times coeffecient
+        lineLengths = []
+        for row in mask:
+            line = [i for i in row if i]
+            lineLength = len(line)
+            if lineLength > 5: #filter out dead pixels
+                lineLengths.append(lineLength)
 
-    avgLineWidth = sum(lineLengths) / len(lineLengths)
-    acceptLineCoeff = 1.25
+        avgLineWidth = sum(lineLengths) / len(lineLengths)
+        acceptLineCoeff = 1.25
 
-    topLineIndex = inf
-    bottomLineIndex = 0
-    for i, line in enumerate(lineLengths):
+        topLineIndex = inf
+        bottomLineIndex = 0
+        for i, line in enumerate(lineLengths):
+            
+            if line*acceptLineCoeff < avgLineWidth:
+                topLineIndex = min(i, topLineIndex)
+                bottomLineIndex = max(i, bottomLineIndex)
+
+        # get height off mask
+        pixelHeight = bottomLineIndex - topLineIndex
         
-        if line*acceptLineCoeff < avgLineWidth:
-            topLineIndex = min(i, topLineIndex)
-            bottomLineIndex = max(i, bottomLineIndex)
 
-    # get height off mask
-    pixelHeight = bottomLineIndex - topLineIndex
-    
+        ### STEP 3 ###    
+        # get left most line
+        lineLengths = []
+        for colNum in range(len(mask[0])):
+            line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
+            lineLength = len(line)
+            if lineLength > 5: #filter out dead pixels
+                lineLengths.append(lineLength)
 
-    ### STEP 3 ###    
-    # get left most line
-    lineLengths = []
-    for colNum in range(len(mask[0])):
-        line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
-        lineLength = len(line)
-        if lineLength > 5: #filter out dead pixels
-            lineLengths.append(lineLength)
+        avgLineWidth = sum(lineLengths) / len(lineLengths)
+        acceptLineCoeff = 1
 
-    avgLineWidth = sum(lineLengths) / len(lineLengths)
-    acceptLineCoeff = 1
-
-    leftLineIndex = inf
-    for i, line in enumerate(lineLengths):
+        leftLineIndex = inf
+        for i, line in enumerate(lineLengths):
+            
+            if line*acceptLineCoeff < avgLineWidth:
+                leftLineIndex = min(i, topLineIndex)
         
-        if line*acceptLineCoeff < avgLineWidth:
-            leftLineIndex = min(i, topLineIndex)
-    
-    # add
-    leftLineIndex += 20
+        # add
+        leftLineIndex += 20
 
 
-    ### STEP 4 ###
-    # find laser center
-    diff = (maxTemp - minTemp) * 0.1
-    mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
-    mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
-    saveMask(mask, os.path.join(folder,'mask-2.png'))
+        ### STEP 4 ###
+        # find laser center
+        diff = (maxTemp - minTemp) * 0.1
+        mask = isolateValue(data, maxTemp - diff, imarr, BLUE)
+        mask, laserMaskMin, laserMaskMax = maskGetBbox(mask)
+        saveMask(mask, os.path.join(folder,'mask-2.png'))
     
+    else:
+        warmMaskMin = (maskPos[0][0], maskPos[1][0])
+        mask = [[val for val in row[maskPos[1][0]:maskPos[1][1]]] for row in mask[maskPos[0][0]:maskPos[0][1]]]
+
+
     # make lines, laser burde være en cirkel. Linjer burde være uafbrudte
     maxLine = (0,0, 0) # (pos, val, center)
     for rowNum, row in enumerate(mask):
@@ -335,7 +341,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     return fullmask
 
 
-def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
+def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10, maskpos=None) -> None:
 
     createNewFolder(os.path.join('debug','mask'))
 
@@ -355,7 +361,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     while c < maskheapsize:
         file = files[randint(0,len(files)-1)]
         i += 1
-        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
+        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)), maskpos=maskpos)
         masks.append(mask)
         
         if mask:
@@ -546,8 +552,8 @@ def createNewFolder(folder):
         pass
 
 
-def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10) -> list:
-    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskheapsize:int=10, maskpos=None) -> list:
+    mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize, maskpos)
     files = getSortedFolder(os.path.join(fpath, '*.asc'))
     pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
 

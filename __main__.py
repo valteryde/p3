@@ -77,6 +77,35 @@ def cameraGetTemperatures():
         return True
 
 
+def cameraGetTemperatureManual():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i]
+
+    choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    if '.asc' in choice[1]: #file
+        pass
+    
+    else: #folder
+        #os.system('clear')
+        t = int(input('Top: '))
+        b = int(input('Bund: '))
+        l = int(input('Venstre: '))
+        r = int(input('Højre: '))
+        analyzeFromFolder(os.path.join(basepath,choice[1]), 'files', maskpos=[[t,b], [l,r]])
+        return True
+
+
+
 def cameraConvertFolder():
     basepath = 'files'
     files = os.listdir(basepath)
@@ -103,6 +132,7 @@ def camera():
             "<-- Gå tilbage",
             "Omdan til png",
             "Aflæs temperature [ASCII]",
+            "Aflæs temperature manualt [ASCII]",
         ])
 
     if choice[0] == 0:
@@ -113,6 +143,9 @@ def camera():
 
     if choice[0] == 2:
         wrapper(cameraGetTemperatures, camera)
+    
+    if choice[0] == 3:
+        wrapper(cameraGetTemperatureManual, camera)
 
 
 def main():
