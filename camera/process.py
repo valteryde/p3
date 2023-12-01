@@ -191,7 +191,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 20
+    leftLineIndex += 30
 
     ### STEP 4 ###
     # find laser center
@@ -483,12 +483,33 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
         for i in temps[key]:
             temps[key][i] = temps[key][i][1] / temps[key][i][0]
 
-    # slet
-    # im = Image.fromarray(mapColor(img, minTemp, maxTemp))
-    # im.transpose(2)
-    # im.show()
+    # gør det igen jf. filtrerings algoritmen
+    span = [-50, 50]
+    res = {}
+    for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
+        
+        temp = {}
+        
+        for rowNum in range(maskpos[0], len(mask)+maskpos[0]):
+            
+            i = colNum-maskpos[1]
+            mark = mask[rowNum-maskpos[0]][i]
+            
+            if mark not in temp.keys(): temp[mark] = [0,0]
 
-    return temps
+            # filter
+            if not (temps[i] + span[0] < data[rowNum][colNum] < temps[i] + span[1]):
+                print(data[rowNum][colNum])
+                continue
+
+            temp[mark][0] += 1
+            temp[mark][1] += data[rowNum][colNum]
+            if mark == 5:
+                img[rowNum-maskpos[0]][i] = data[rowNum][colNum]
+
+        res[i] = temp
+
+    return res
 
 def rule(ts) -> list:
     res = []
