@@ -482,6 +482,7 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
         for i in temps[key]:
             temps[key][i] = temps[key][i][1] / temps[key][i][0]
 
+    
     # gør det igen jf. filtrerings algoritmen
     span = [-50, 50]
     res = {}
@@ -505,14 +506,11 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
         res[i] = temp
 
-
     # average igen igen
-    res = {}
     for key in res:
         
         for i in res[key]:
             res[key][i] = res[key][i][1] / res[key][i][0]
-
 
     return res
 
