@@ -453,13 +453,14 @@ def getTempFromFrameWithMask(fpath, mask, maskpos):
         return __getTempFromFrameWithMask(fpath, mask, maskpos)
     except Exception as e:
         print('\033[93m','Bad frame, skipping {}'.format(fpath), '\033[0m')
+        return False
 
 
 def __getTempFromFrameWithMask(fpath, mask, maskpos):
     data, minTemp, maxTemp = loadASCIIFile(fpath)
     
     temps = {}
-    img = [[0 for _ in row] for row in mask]
+    #img = [[0 for _ in row] for row in mask]
     for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
         
         temp = {}
@@ -472,8 +473,6 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
             temp[mark][0] += 1
             temp[mark][1] += data[rowNum][colNum]
-            if mark == 5:
-                img[rowNum-maskpos[0]][colNum-maskpos[1]] = data[rowNum][colNum]
 
         temps[colNum-maskpos[1]] = temp
 
@@ -498,16 +497,22 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
             if mark not in temp.keys(): temp[mark] = [0,0]
 
             # filter
-            if not (temps[i] + span[0] < data[rowNum][colNum] < temps[i] + span[1]):
-                print(data[rowNum][colNum])
+            if not (temps[i][mark] + span[0] < data[rowNum][colNum] < temps[i][mark] + span[1]):
                 continue
 
             temp[mark][0] += 1
             temp[mark][1] += data[rowNum][colNum]
-            if mark == 5:
-                img[rowNum-maskpos[0]][i] = data[rowNum][colNum]
 
         res[i] = temp
+
+
+    # average igen igen
+    res = {}
+    for key in res:
+        
+        for i in res[key]:
+            res[key][i] = res[key][i][1] / res[key][i][0]
+
 
     return res
 
@@ -601,6 +606,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
             continue
 
         res = getTempFromFrameWithMask(file, mask, maskpos)
+        if not res: continue
         r = rule(res)
         for o in r: sheet.append([*o])
         for o in r: table.append([*o])
@@ -621,7 +627,7 @@ def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskhe
 
     outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
     createNewFolder(outputfolder)
-    retrieveTempFromFiles(files, mask, maskpos)
+    retrieveTempFromFiles(files, mask, maskpos, outputfolder)
     
 
 global_mask = [None]
@@ -654,7 +660,6 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
     # create mask
     boxes = global_mask[0]
 
-    res = []
     xborder = [-inf,inf]
     yborder = [inf, -inf]
     for i,box in enumerate(boxes):
