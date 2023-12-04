@@ -14,11 +14,13 @@ COLORCHECKPOINTS = heatmap
 
 SETTINGS = {
     "MINTEMP" : 0,
-    "MAXTEMP" : 500
+    "MAXTEMP" : 400
 }
 
-def mapTempToColor(col, mn=SETTINGS["MINTEMP"], mx=SETTINGS["MAXTEMP"]):
-    
+def mapTempToColor(col, mn=None, mx=None):
+    if mn is None: mn = SETTINGS["MINTEMP"]
+    if mx is None: mx = SETTINGS["MAXTEMP"]
+
     if -0.005 < mn - mx < 0.005:
         return COLORCHECKPOINTS[-1]
 

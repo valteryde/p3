@@ -119,7 +119,7 @@ class HeatEquationModel:
         return frame
 
 
-    def __correct__(self, heap, t):
+    def __depcorrect__(self, heap, t):
         if not self.correctionFunction: return
         if self.correctionMap is None:
             self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
@@ -151,7 +151,8 @@ class HeatEquationModel:
 
         #print(diffproc)
         # tæt på 0, for høj korrigering
-        if diffproc < 0: diffproc = 0.25
+        interval = [0.9, 1.1]
+        diffproc = min(max(diffproc, interval[0]), interval[1])
 
         # if (-10e-3 < diffproc < 10e-3):
         #     self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
@@ -166,6 +167,44 @@ class HeatEquationModel:
         self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
         #print((startTemp - sum([sum(row) for row in self.correctionMap])), (correctTemp - sum([sum(row) for row in self.correctionMap])) / totalNodes)
 
+
+
+    def __correct__(self, heap, t):
+        if not self.correctionFunction: return
+
+        surroundingTemperature = 20
+        currentTemp = sum([sum([self.hmap[i,j,heap] for j in range(self.len[1])]) for i in range(self.len[0])])
+
+        if surroundingTemperature >= currentTemp:
+            return
+
+        totalNodes = (self.len[0]) * (self.len[1])
+        heatloss = {}
+        heatlossSum = 0
+
+        for i in range(self.len[0]):
+            for j in range(self.len[1]):
+                diff = self.hmap[i,j,heap] - surroundingTemperature
+                # if diff < 0: diff = 0
+                heatloss[i,j] = diff
+                heatlossSum += diff
+
+        #if -1500 < heatlossSum < 1500: return # jeg har ingen ide hvorfor det her virker... pls ik slet 
+        correctTemp = self.correctionFunction(t, None) * totalNodes
+
+        gamma = (currentTemp - correctTemp) / heatlossSum
+
+        # if gamma < 0.5:
+        #     return
+
+        if abs(heatlossSum) < 1000:
+            return
+        #print(gamma, correctTemp/totalNodes, currentTemp/totalNodes, correctTemp - currentTemp, tspoida, heatlossSum)
+        
+        # update
+        for i in range(self.len[0]):
+            for j in range(self.len[1]):
+                self.hmap[i,j,heap] -= heatloss[i,j] * gamma
 
 
     # *** API ***
