@@ -60,8 +60,8 @@ def createRegression(path):
     plt = plot.Plot()
     plt.title(second='Blank overflade', first='Malet overflade')
     
-    inner = [(i[2],i[1]) for i in data if all(map(lambda x: x is None, i))]
-    outer = [(i[0],i[3]) for i in data if all(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
+    inner = [(i[2],i[1]) for i in data if not any(map(lambda x: x is None, i))]
+    outer = [(i[0],i[3]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
     funcs = []
@@ -71,9 +71,12 @@ def createRegression(path):
         dx = [x for x,y in data if bordervalues[borderindex-1] < x < bordervalues[borderindex]]
         dy = [y for x,y in data if bordervalues[borderindex-1] < x < bordervalues[borderindex]]
 
+        if len(dx) == 0 or len(dy) == 0:
+            continue
+
         try:
             reg = regression(lambda x,a,b: a*x+b, dx, dy)
-        except ValueError:
+        except ImportError:
             continue
         a,b = reg[0][0], reg[0][1]
         print(']{}, {}], f(x)={}*x +{}'.format(bordervalues[borderindex-1], bordervalues[borderindex], reg[0][0], reg[0][1]))
