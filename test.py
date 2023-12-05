@@ -1,5 +1,6 @@
 
-from camera import analyzeFromFolderManual
+from camera import createRegression, showImage
+from kaxe import resetColor
 
 # def main():
 #     # convertFolder('files/data-2')
@@ -10,4 +11,18 @@ from camera import analyzeFromFolderManual
 #     res = analyzeFromFolder('files/data-2', 'test.xlsx', 10)
 
 def main():
-    analyzeFromFolderManual('files/Forsøg 13')
+    
+    class bcolors:
+        HEADER = '\033[95m'
+        OKBLUE = '\033[94m'
+        OKCYAN = '\033[96m'
+        OKGREEN = '\033[92m'
+        WARNING = '\033[93m'
+        FAIL = '\033[91m'
+        ENDC = '\033[0m'
+        BOLD = '\033[1m'
+        UNDERLINE = '\033[4m'
+    
+    showImage('files/Forsøg 13-res')
+    resetColor()
+    createRegression('files/Forsøg 13-res')

@@ -2,7 +2,7 @@
 from interface import selectionWindow, displayData
 from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
-from camera import analyzeFromFolder
+from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
 from test import main as test
 from _thread import start_new_thread
@@ -13,6 +13,10 @@ import platform
 import sys
 import math
 import psutil
+from kaxe import resetColor
+
+def clear():
+    os.system('cls||clear')
 
 
 def printState():
@@ -57,7 +61,7 @@ def cameraGetTemperatures():
     basepath = 'files'
     files = os.listdir(basepath)
 
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i]
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
 
     choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
@@ -72,7 +76,6 @@ def cameraGetTemperatures():
         pass
     
     else: #folder
-        os.system('clear')
         analyzeFromFolder(os.path.join(basepath,choice[1]), 'files')
         return True
 
@@ -81,7 +84,7 @@ def cameraGetTemperatureManual():
     basepath = 'files'
     files = os.listdir(basepath)
 
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i]
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
 
     choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
@@ -96,23 +99,22 @@ def cameraGetTemperatureManual():
         pass
     
     else: #folder
-        #os.system('clear')
         # t = int(input('Top: '))
         # b = int(input('Bund: '))
         # l = int(input('Venstre: '))
         # r = int(input('Højre: '))
         # t, l, b, r = 116, 97, 325, 498
+        clear()
         analyzeFromFolderManual(os.path.join(basepath,choice[1]), 'files')
         return True
 
 
 
-def cameraConvertFolder():
+def starLineExpress():
     basepath = 'files'
     files = os.listdir(basepath)
 
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i]
-
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
     choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
     if choice[0] == 0: 
@@ -122,7 +124,50 @@ def cameraConvertFolder():
         openFilesFolder()
         return False
     
-    os.system('clear')
+    analyzeFromFolder(os.path.join(basepath,choice[1]), 'files')
+    print('\033[96m'+'Når denne process er færdig, vil dataen blive vist på en graf. Læg her mærke til hop i HDR. Disse værdier skal bruges efterfølgende'+'\033[0m')
+    showImage(os.path.join(basepath,choice[1])+'-res')
+    resetColor()
+    clear()
+    createRegression(os.path.join(basepath,choice[1])+'-res')
+    return True
+
+
+def regressionManual():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    clear()
+    createRegression(os.path.join(basepath,choice[1]))
+    return True
+
+
+
+def cameraConvertFolder():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
+    choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    clear()
     convertFolder(os.path.join(basepath,choice[1]))
     return True
 
@@ -131,22 +176,30 @@ def camera():
     
     choice = selectionWindow('Termisk kamera',[
             "<-- Gå tilbage",
+            "Dan kalliberingskurve",
             "Omdan til png",
-            "Aflæs temperature [ASCII]",
-            "Aflæs temperature manualt [ASCII]",
+            "Aflæs temperature",
+            "Aflæs temperature [Manualt]",
+            "Dan kallibreringskurve på data [Manuelt]",
         ])
 
     if choice[0] == 0:
         return
 
     if choice[0] == 1:
-        wrapper(cameraConvertFolder, camera)
+        wrapper(starLineExpress, camera)
 
     if choice[0] == 2:
+        wrapper(cameraConvertFolder, camera)
+
+    if choice[0] == 3:
         wrapper(cameraGetTemperatures, camera)
     
-    if choice[0] == 3:
+    if choice[0] == 4:
         wrapper(cameraGetTemperatureManual, camera)
+
+    if choice[0] == 5:
+        wrapper(regressionManual, camera)
 
 
 def main():
@@ -154,7 +207,6 @@ def main():
     choice = selectionWindow('MP3 2023 Kalibrering af termisk måling',[
         "Termokobler",
         "Termisk kamera",
-        "Simulation",
     ])
 
     if choice[0] == 0:
