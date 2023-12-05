@@ -105,10 +105,13 @@ def saveAllImages(folderName,prefix):
  
     filesInResFolder = os.listdir(folderpath)
 
+    skipframesfreq = int(input('Skip frames:'))
+
     pbar = tqdm.tqdm(total=len(files))
     for i, fileName in enumerate(files):
+        if i % skipframesfreq != 0: continue
         createImage(folderpath, fileName, i, filesInResFolder, fileLength)
-        pbar.update()
+        pbar.update(skipframesfreq)
 
     pbar.close()
     print('Output:', folderpath)

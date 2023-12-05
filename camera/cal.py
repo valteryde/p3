@@ -59,7 +59,7 @@ def createRegression(path):
     plt.title(second='Blank overflade', first='Malet overflade')
     
     inner = [(i[2],i[1]) for i in data]
-    outer = [(i[0],i[3]) for i in data]
+    outer = [(i[0],i[3]) for i in data] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
     funcs = []

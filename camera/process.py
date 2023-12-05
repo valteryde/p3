@@ -522,8 +522,11 @@ def rule(ts) -> list:
         r = []
         for key in sorted(ts[x].keys()): # alle frames burde have lige mange keys, da de kører samme maske
             if key == 0: continue # ingen grund til at tage padding imellem med
-
             r.append(ts[x][key])
+        
+        if len(r) != 4:
+            continue
+        
         res.append(r)
 
     return res
@@ -606,6 +609,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
         res = getTempFromFrameWithMask(file, mask, maskpos)
         if not res: continue
         r = rule(res)
+
         for o in r: sheet.append([*o])
         for o in r: table.append([*o])
 
