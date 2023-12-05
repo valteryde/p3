@@ -47,6 +47,8 @@ def createRegression(path):
         except ValueError:
             break
 
+    bordervalues.sort()
+
     print('Vent venligst (forstil venligt elevatormusik)')
 
     xlsx = glob.glob(os.path.join(path, '*.xlsx'))
