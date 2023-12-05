@@ -60,8 +60,8 @@ def createRegression(path):
     plt = plot.Plot()
     plt.title(second='Blank overflade', first='Malet overflade')
     
-    inner = [(i[2],i[1]) for i in data]
-    outer = [(i[0],i[3]) for i in data] #burde tjekke for dårlige pixels
+    inner = [(i[2],i[1]) for i in data if all(map(lambda x: x is None, i))]
+    outer = [(i[0],i[3]) for i in data if all(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
     funcs = []
