@@ -112,6 +112,23 @@ def cameraGetTemperatureManual():
         return True
 
 
+def callibrateSecondChoice(choice):
+    basepath = 'files'
+    files = os.listdir(basepath)
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] not in ['-res', '-cal']]
+    choice2 = selectionWindow('Vælg datasæt',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice2[0] == 0: 
+        return False
+    
+    if choice2[0] == 1:
+        openFilesFolder()
+        return False
+
+    clear()
+    callibrateASCII(os.path.join(basepath,choice2[1]), os.path.join(basepath, choice[1]+'-res', 'func.cal'))
+    return True
+
 def calibrateData():
     basepath = 'files'
     files = os.listdir(basepath)
@@ -127,20 +144,7 @@ def calibrateData():
         openFilesFolder()
         return False
     
-    files = os.listdir(basepath)
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
-    choice2 = selectionWindow('Vælg datasæt',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
-
-    if choice2[0] == 0: 
-        return False
-    
-    if choice2[0] == 1:
-        openFilesFolder()
-        return False
-
-    callibrateASCII(os.path.join(basepath,choice2[1]), os.path.join(basepath, choice[1]+'-res', 'func.cal'))
-
-    return True
+    return wrapper(callibrateSecondChoice, calibrateData, choice)
 
 
 
@@ -210,7 +214,7 @@ def camera():
     # lav en "-res" til alle filer
     files = os.listdir('files')
     for i in files:
-        if not(i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res'):continue
+        if not(i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] not in ['-res', '-cal']):continue
         createFolder(os.path.join('files',i+'-res'), remove=False)
     
 

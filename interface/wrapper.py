@@ -16,7 +16,7 @@ def selectWrapper(func, parentfunc=None, *args, **kwargs):
         if parentfunc:
             tree[func] = parentfunc
 
-        funcres = func()
+        funcres = func(*args, **kwargs)
         if funcres:
             escape = True
 

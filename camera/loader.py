@@ -2,6 +2,7 @@
 import math
 import glob, os
 import shutil
+import codecs
 
 def createFolder(folder, remove:bool=True):
     try:
@@ -16,10 +17,10 @@ def createFolder(folder, remove:bool=True):
 
 def saveASCIIFile(fname, data, settings):
     
-    file = open(fname, 'w')
-    file.write(settings)
-    file.write('[Data]\n')
-    file.write('\r\n'.join(['\t'.join(row) for row in data]))
+    file = open(fname, '+bw')
+    file.write(codecs.encode(settings, errors="replace"))
+    file.write(codecs.encode('[Data]\n', errors="replace"))
+    file.write(codecs.encode('\r\n'.join(['\t'.join(row) for row in data]), errors="replace"))
     file.close()
 
 
