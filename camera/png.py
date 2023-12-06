@@ -7,6 +7,7 @@ import time
 import os
 import tqdm
 from .loader import loadASCIIFile as loadFile
+from .loader import createFolder
 from .map import heatmap
 
 COLORCHECKPOINTS = heatmap
@@ -97,11 +98,8 @@ def saveAllImages(folderName,prefix):
     
     baseFolderPath, baseFolderName = os.path.split(folderName)
 
-    folderpath = os.path.join(baseFolderPath, baseFolderName+'-res')
-    try:
-        os.mkdir(os.path.join(baseFolderPath, baseFolderName+'-res'))
-    except FileExistsError:
-        pass
+    folderpath = os.path.join(baseFolderPath, baseFolderName+'-res', 'fotos')
+    createFolder(folderpath)
  
     filesInResFolder = os.listdir(folderpath)
 

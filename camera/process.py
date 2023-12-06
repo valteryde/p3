@@ -1,7 +1,6 @@
 import math
-import shutil
 import tqdm
-from .loader import loadASCIIFile, getSortedFolder
+from .loader import loadASCIIFile, getSortedFolder, createFolder
 from .png import createImage, loadFile, mapColor
 from PIL import Image
 import numpy as np
@@ -14,7 +13,6 @@ from _thread import start_new_thread
 import time
 import sys
 import pyglet as pg
-
 
 WHITE = (255,255,255,255)
 RED = (255,0,0,255)
@@ -344,7 +342,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
 def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
 
-    createNewFolder(os.path.join('debug','mask'))
+    createFolder(os.path.join('debug','mask'))
 
     files = getSortedFolder(os.path.join(fpath, '*.asc'))
 
@@ -569,18 +567,9 @@ def createPreviewMaskImage(mask, maskpos, file, outputfolder='debug'):
     Image.fromarray(imarr).save(os.path.join(outputfolder,os.path.split(file)[-1].replace('.asc', '.png')))
 
 
-def createNewFolder(folder):
-    try:
-        shutil.rmtree(folder)
-    except FileNotFoundError:
-        pass
-    try:
-        os.mkdir(folder)
-    except FileExistsError:
-        pass
-
 def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
-    createNewFolder(outputfolder)
+    outputfolder = os.path.join(outputfolder, 'temperature')
+    createFolder(outputfolder)
     pbar = tqdm.tqdm(total=len(files), desc="Beregner temperatur")
 
     workbook = pxl.Workbook()
@@ -628,7 +617,6 @@ def analyzeFromFolder(fpath:str, baseoutputfolder:str="files", fingers=4, maskhe
     files = getSortedFolder(os.path.join(fpath, '*.asc'))
 
     outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
-    createNewFolder(outputfolder)
     retrieveTempFromFiles(files, mask, maskpos, outputfolder)
     
 

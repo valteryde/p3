@@ -4,6 +4,8 @@ from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
 from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
+from camera import callibrateASCII
+from camera import createFolder
 from test import main as test
 from _thread import start_new_thread
 import datetime
@@ -14,6 +16,7 @@ import sys
 import math
 import psutil
 from kaxe import resetColor
+# from .install import 
 
 def clear():
     os.system('cls||clear')
@@ -109,6 +112,37 @@ def cameraGetTemperatureManual():
         return True
 
 
+def calibrateData():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [folder.replace('-res', '') for folder in files if 'func.cal' in os.listdir(os.path.join(basepath,folder))]
+    choice = selectionWindow('Vælg kaliberingsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    files = os.listdir(basepath)
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
+    choice2 = selectionWindow('Vælg datasæt',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice2[0] == 0: 
+        return False
+    
+    if choice2[0] == 1:
+        openFilesFolder()
+        return False
+
+    callibrateASCII(os.path.join(basepath,choice2[1]), os.path.join(basepath, choice[1]+'-res', 'func.cal'))
+
+    return True
+
+
 
 def starLineExpress():
     basepath = 'files'
@@ -137,7 +171,7 @@ def regressionManual():
     basepath = 'files'
     files = os.listdir(basepath)
 
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [i.replace('-res', '') for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
     choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
     if choice[0] == 0: 
@@ -148,9 +182,8 @@ def regressionManual():
         return False
     
     clear()
-    createRegression(os.path.join(basepath,choice[1]))
+    createRegression(os.path.join(basepath,choice[1]+'-res'))
     return True
-
 
 
 def cameraConvertFolder():
@@ -174,6 +207,13 @@ def cameraConvertFolder():
 
 def camera():
     
+    # lav en "-res" til alle filer
+    files = os.listdir('files')
+    for i in files:
+        if not(i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res'):continue
+        createFolder(os.path.join('files',i+'-res'), remove=False)
+    
+
     choice = selectionWindow('Termisk kamera',[
             "<-- Gå tilbage",
             "Dan kalliberingskurve",
@@ -181,6 +221,7 @@ def camera():
             "Aflæs temperature",
             "Aflæs temperature [Manualt]",
             "Dan kallibreringskurve på data [Manuelt]",
+            "Kallibrer datasæt",
         ])
 
     if choice[0] == 0:
@@ -201,19 +242,21 @@ def camera():
     if choice[0] == 5:
         wrapper(regressionManual, camera)
 
+    if choice[0] == 6:
+        wrapper(calibrateData, camera)
 
 def main():
     
     choice = selectionWindow('MP3 2023 Kalibrering af termisk måling',[
-        "Termokobler",
         "Termisk kamera",
+        "Termokobler",
     ])
 
     if choice[0] == 0:
-        wrapper(thermocouple, main)
+        wrapper(camera, main)
 
     if choice[0] == 1:
-        wrapper(camera, main)
+        wrapper(thermocouple, main)
 
 
 def openFilesFolder():
@@ -230,8 +273,6 @@ if __name__ == '__main__':
     # init
     if len(sys.argv) >= 2 and sys.argv[1] == "init":
         os.mkdir('files')
-        file = open(os.path.join('files', 'config.json'), 'w')
-        file.close()
         os.mkdir('debug')
 
     # test

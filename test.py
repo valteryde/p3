@@ -1,6 +1,7 @@
 
 from camera import createRegression, showImage
 from kaxe import resetColor
+from camera import callibrateASCII
 
 # def main():
 #     # convertFolder('files/data-2')
@@ -12,17 +13,16 @@ from kaxe import resetColor
 
 def main():
     
-    class bcolors:
-        HEADER = '\033[95m'
-        OKBLUE = '\033[94m'
-        OKCYAN = '\033[96m'
-        OKGREEN = '\033[92m'
-        WARNING = '\033[93m'
-        FAIL = '\033[91m'
-        ENDC = '\033[0m'
-        BOLD = '\033[1m'
-        UNDERLINE = '\033[4m'
+    # class bcolors:
+    #     HEADER = '\033[95m'
+    #     OKBLUE = '\033[94m'
+    #     OKCYAN = '\033[96m'
+    #     OKGREEN = '\033[92m'
+    #     WARNING = '\033[93m'
+    #     FAIL = '\033[91m'
+    #     ENDC = '\033[0m'
+    #     BOLD = '\033[1m'
+    #     UNDERLINE = '\033[4m'
     
-    showImage('files/Forsøg 13-res')
-    resetColor()
     createRegression('files/Forsøg 13-res')
+    callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')

@@ -7,20 +7,22 @@ from kaxe.data import loadExcel
 import numpy as np
 from PIL import Image
 import math
+from .apply import createCalFunction
+
 
 def showImage(path):
-    xlsx = glob.glob(os.path.join(path, '*.xlsx'))
+    xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
 
     data = []
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
-    inner = [(i[2],i[1]) for i in data]
-    outer = [(i[0],i[3]) for i in data]
+    inner = [(i[1],i[2]) for i in data]
+    outer = [(i[3],i[0]) for i in data]
     data = [*inner, *outer]
 
     pl = plot.Plot()
-    pl.title(second='Blank overflade', first='Malet overflade')
+    pl.title(first='Blank overflade', second='Malet overflade')
     
     x = [i[0] for i in data]
     y = [i[1] for i in data]
@@ -48,24 +50,26 @@ def createRegression(path):
             break
 
     bordervalues.sort()
+    bordervalues.append(math.inf)
 
-    print('Vent venligst (forstil venligt elevatormusik)')
+    print('Henter data (*elevatormusik*)')
 
-    xlsx = glob.glob(os.path.join(path, '*.xlsx'))
+    xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
 
     data = []
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
     plt = plot.Plot()
-    plt.title(second='Blank overflade', first='Malet overflade')
+    plt.title(first='Blank overflade', second='Malet overflade')
     
-    inner = [(i[2],i[1]) for i in data if not any(map(lambda x: x is None, i))]
-    outer = [(i[0],i[3]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
+    inner = [(i[1],i[2]) for i in data if not any(map(lambda x: x is None, i))]
+    outer = [(i[3],i[0]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
     funcs = []
     points = []
+    fs = []
     for borderindex in range(1,len(bordervalues)):
         
         dx = [x for x,y in data if bordervalues[borderindex-1] < x < bordervalues[borderindex]]
@@ -87,6 +91,7 @@ def createRegression(path):
 
         linreg = objects.Function(func, a=a, b=b, interval=[bordervalues[borderindex-1],  bordervalues[borderindex]]).legend('Reg: y={}x+{}'.format(round(a,4),round(b,2)))
         funcs.append(linreg)
+        fs.append(([bordervalues[borderindex-1],  bordervalues[borderindex]], '{}*x+{}'.format(a,b)))
 
         p = objects.Points(dx,dy, size=15).legend('Målt')
         points.append(p)
@@ -95,6 +100,8 @@ def createRegression(path):
         plt.add(i)
     for i in funcs:
         plt.add(i)
+
+    createCalFunction(os.path.join(path, 'func.cal'), fs)
 
     # reg = regression(lambda x,a,b,c: a*np.power(x, 2) + b*x + c, x, y)
     # d, e, f = reg[0][0], reg[0][1], reg[0][2]

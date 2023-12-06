@@ -1,8 +1,29 @@
 
 import math
 import glob, os
+import shutil
 
-def loadASCIIFile(fileName:str) -> list:
+def createFolder(folder, remove:bool=True):
+    try:
+        if remove:
+            shutil.rmtree(folder)
+    except FileNotFoundError:
+        pass
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        pass
+
+def saveASCIIFile(fname, data, settings):
+    
+    file = open(fname, 'w')
+    file.write(settings)
+    file.write('[Data]\n')
+    file.write('\r\n'.join(['\t'.join(row) for row in data]))
+    file.close()
+
+
+def loadASCIIFile(fileName:str, getRaw=False) -> list:
     file = open(fileName, 'rb')
     data = file.read().decode('utf-8', 'replace')
     
@@ -27,6 +48,8 @@ def loadASCIIFile(fileName:str) -> list:
 
     data.pop(-1)
 
+    if getRaw:
+        return data, lowestTemp, highestTemp, settings
     return data, lowestTemp, highestTemp
 
 
