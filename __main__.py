@@ -18,6 +18,16 @@ import psutil
 from kaxe import resetColor
 # from .install import 
 
+REGRESSIONSNAMES = ["Lineær", "2. poly", "3. poly", "4. poly", "5. poly"]
+REGRESSIONS = [
+    (lambda x,a,b: a*x+b,  "{}*x+{}"),
+    (lambda x,a,b,c: a*x**2+b*x+c, "{}*x**2+{}*x+{}"),
+    (lambda x,a,b,c,d: a*x**3+b*x**2+c*x+d, "{}*x**3+{}*x**2+{}*x+{}"),
+    (lambda x,a,b,c,d,e: a*x**4+b*x**3+c*x**2+d*x+e, "{}*x**4+{}*x**3+{}*x**2+{}*x+{}"),
+    (lambda x,a,b,c,d,e,f: a*x**5+b*x**4+c*x**3+d*x**2+e*x+f, "{}*x**5+{}*x**4+{}*x**3+{}*x**2+{}*x+{}")
+]
+
+
 def clear():
     os.system('cls||clear')
 
@@ -166,15 +176,9 @@ def starLineExpress():
     clear()
     print('\033[96m'+'Når denne process er færdig, vil dataen blive vist på en graf. Læg her mærke til hop i HDR. Disse værdier skal bruges efterfølgende'+'\033[0m')
     showImage(os.path.join(basepath,choice[1]+'-res'))
-    typereg = selectionWindow('Vælg type af regression',["Lineær", 'Anden grads polynomisk'])
+    typereg = selectionWindow('Vælg type af regression',REGRESSIONSNAMES)
     resetColor()
-    createRegression(os.path.join(basepath,choice[1]+'-res'), [
-        lambda x,a,b: a*x+b,
-        lambda x,a,b,c: a*x**2+b*x+c
-    ][typereg[0]], [
-        "{}*x+{}",
-        "{}*x^2+{}*x+{}"
-    ][typereg[0]])
+    createRegression(os.path.join(basepath,choice[1]+'-res'), *REGRESSIONS[typereg[0]])
     return True
 
 
@@ -194,15 +198,9 @@ def regressionManual():
     
     clear()
     showImage(os.path.join(basepath,choice[1]+'-res'))
-    typereg = selectionWindow('Vælg type af regression',["Lineær", 'Anden grads polynomisk'])
+    typereg = selectionWindow('Vælg type af regression',REGRESSIONSNAMES)
     resetColor()
-    createRegression(os.path.join(basepath,choice[1]+'-res'), [
-        lambda x,a,b: a*x+b,
-        lambda x,a,b,c: a*x**2+b*x+c
-    ][typereg[0]], [
-        "{}*x+{}",
-        "{}*x**2+{}*x+{}"
-    ][typereg[0]])
+    createRegression(os.path.join(basepath,choice[1]+'-res'), *REGRESSIONS[typereg[0]])
     return True
 
 
