@@ -110,7 +110,7 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     # polyreg = objects.Function(lambda x: d*x**2 + e*x + f).legend('Reg: y=ax^2+bx+c')
     # plot.add(polyreg)
 
-    outputfile = os.path.join(path, 'curve.png')
+    outputfile = os.path.join(path, os.path.split(path)[-1].replace('-res','')+'.png')
     plt.save(outputfile)
     im = Image.open(outputfile)
     im.show()
