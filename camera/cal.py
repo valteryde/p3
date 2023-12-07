@@ -116,3 +116,4 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     im.show()
     im.close()
     print('Output:', outputfile)
+    print('Output:', os.path.join(path, 'func.cal'))
