@@ -39,7 +39,7 @@ def showImage(path):
 def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     
     print('\033[96m'+'Vælg grænseværdier [Skriv et bogstav for at færdiggøre + Tryk enter]'+'\033[0m')
-    bordervalues = [-math.inf]
+    bordervalues = []
     while True:
         
         inp = input('Grænseværdi: ')
@@ -50,7 +50,6 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
             break
 
     bordervalues.sort()
-    bordervalues.append(math.inf)
 
     print('Henter data (*elevatormusik*)')
 
@@ -66,6 +65,9 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     inner = [(i[1],i[2]) for i in data if not any(map(lambda x: x is None, i))]
     outer = [(i[3],i[0]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
+
+    bordervalues.insert(0, min(data, key=lambda d: d[0])[0])
+    bordervalues.append(max(data, key=lambda d: d[0])[0])
 
     funcs = []
     points = []
