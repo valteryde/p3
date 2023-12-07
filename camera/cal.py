@@ -9,8 +9,8 @@ from PIL import Image
 import math
 from .apply import createCalFunction
 
-
 def showImage(path):
+    print('Laver graf (vent venligst)')
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
 
     data = []
@@ -36,7 +36,7 @@ def showImage(path):
     im.close()
 
 
-def createRegression(path):
+def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     
     print('\033[96m'+'Vælg grænseværdier [Skriv et bogstav for at færdiggøre + Tryk enter]'+'\033[0m')
     bordervalues = [-math.inf]
@@ -79,19 +79,18 @@ def createRegression(path):
             continue
 
         try:
-            reg = regression(lambda x,a,b: a*x+b, dx, dy)
+            reg = regression(regtype, dx, dy)
         except ImportError:
             continue
-        a,b = reg[0][0], reg[0][1]
-        print(']{}, {}], f(x)={}*x +{}'.format(bordervalues[borderindex-1], bordervalues[borderindex], reg[0][0], reg[0][1]))
-        
-        def func(x, a, b, interval):
-            if interval[0] <= x <= interval[1]:
-                return a*x+b
+        print(']{}, {}]'.format(bordervalues[borderindex-1], bordervalues[borderindex]) + regtypelabel.format(*reg[0]))
 
-        linreg = objects.Function(func, a=a, b=b, interval=[bordervalues[borderindex-1],  bordervalues[borderindex]]).legend('Reg: y={}x+{}'.format(round(a,4),round(b,2)))
-        funcs.append(linreg)
-        fs.append(([bordervalues[borderindex-1],  bordervalues[borderindex]], '{}*x+{}'.format(a,b)))
+        def func(x, regs, interval, fnc):
+            if interval[0] <= x <= interval[1]:
+                return fnc(x, *regs) # farligt, men tager ikke user input her så det går nok
+
+        freg = objects.Function(func, fnc=regtype, regs=[float(i) for i in reg[0]], interval=[bordervalues[borderindex-1],  bordervalues[borderindex]]).legend(regtypelabel.format(*map(lambda a: round(a, 3), reg[0])))
+        funcs.append(freg)
+        fs.append(([bordervalues[borderindex-1],  bordervalues[borderindex]], regtypelabel.format(*reg[0])))
 
         p = objects.Points(dx,dy, size=15).legend('Målt')
         points.append(p)

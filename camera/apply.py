@@ -23,6 +23,7 @@ def eval_expr(expr):
     """
     return eval_(ast.parse(expr, mode='eval').body)
 
+
 def eval_(node):
     if isinstance(node, ast.Num): # <number>
         return node.n

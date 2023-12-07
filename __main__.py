@@ -152,7 +152,7 @@ def starLineExpress():
     basepath = 'files'
     files = os.listdir(basepath)
 
-    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] != '-res']
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] not in ['-res', '-cal']]
     choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
     if choice[0] == 0: 
@@ -163,11 +163,18 @@ def starLineExpress():
         return False
     
     analyzeFromFolder(os.path.join(basepath,choice[1]), 'files')
-    print('\033[96m'+'Når denne process er færdig, vil dataen blive vist på en graf. Læg her mærke til hop i HDR. Disse værdier skal bruges efterfølgende'+'\033[0m')
-    showImage(os.path.join(basepath,choice[1])+'-res')
-    resetColor()
     clear()
-    createRegression(os.path.join(basepath,choice[1])+'-res')
+    print('\033[96m'+'Når denne process er færdig, vil dataen blive vist på en graf. Læg her mærke til hop i HDR. Disse værdier skal bruges efterfølgende'+'\033[0m')
+    showImage(os.path.join(basepath,choice[1]+'-res'))
+    typereg = selectionWindow('Vælg type af regression',["Lineær", 'Anden grads polynomisk'])
+    resetColor()
+    createRegression(os.path.join(basepath,choice[1]+'-res'), [
+        lambda x,a,b: a*x+b,
+        lambda x,a,b,c: a*x**2+b*x+c
+    ][typereg[0]], [
+        "{}*x+{}",
+        "{}*x^2+{}*x+{}"
+    ][typereg[0]])
     return True
 
 
@@ -186,7 +193,16 @@ def regressionManual():
         return False
     
     clear()
-    createRegression(os.path.join(basepath,choice[1]+'-res'))
+    showImage(os.path.join(basepath,choice[1]+'-res'))
+    typereg = selectionWindow('Vælg type af regression',["Lineær", 'Anden grads polynomisk'])
+    resetColor()
+    createRegression(os.path.join(basepath,choice[1]+'-res'), [
+        lambda x,a,b: a*x+b,
+        lambda x,a,b,c: a*x**2+b*x+c
+    ][typereg[0]], [
+        "{}*x+{}",
+        "{}*x**2+{}*x+{}"
+    ][typereg[0]])
     return True
 
 
