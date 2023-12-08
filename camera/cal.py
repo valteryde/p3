@@ -7,7 +7,15 @@ from kaxe.data import loadExcel
 import numpy as np
 from PIL import Image
 import math
-from .apply import createCalFunction
+from .apply import createCalFunction, callibrateExcel
+
+def rsquared(lx, ly, f):
+    #https://en.wikipedia.org/wiki/Coefficient_of_determination
+    yavg = np.average(ly)
+    SST = sum([(y - yavg)**2 for y in ly])
+    SSReg = sum([(ly[i] - f(x))**2 for i, x in enumerate(lx)])
+    return 1 - SSReg/SST
+
 
 def showImage(path):
     print('Laver graf (vent venligst)')
@@ -84,13 +92,13 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
             reg = regression(regtype, dx, dy)
         except ImportError:
             continue
-        print(']{}, {}]'.format(bordervalues[borderindex-1], bordervalues[borderindex]) + regtypelabel.format(*reg[0]))
+        print(']{}, {}] {}'.format(bordervalues[borderindex-1], bordervalues[borderindex], regtypelabel.format(*reg[0])))
 
         def func(x, regs, interval, fnc):
             if interval[0] <= x <= interval[1]:
                 return fnc(x, *regs) # farligt, men tager ikke user input her så det går nok
 
-        freg = objects.Function(func, fnc=regtype, regs=[float(i) for i in reg[0]], interval=[bordervalues[borderindex-1],  bordervalues[borderindex]]).legend(regtypelabel.format(*map(lambda a: round(a, 3), reg[0])))
+        freg = objects.Function(func, fnc=regtype, regs=[float(i) for i in reg[0]], interval=[bordervalues[borderindex-1],  bordervalues[borderindex]]).legend(regtypelabel.format(*map(lambda a: round(a, 3), reg[0]))+ ' r^2={}'.format(round(rsquared(dx, dy, lambda x: regtype(x, *reg[0])), 5)))
         funcs.append(freg)
         fs.append(([bordervalues[borderindex-1],  bordervalues[borderindex]], regtypelabel.format(*reg[0])))
 
@@ -117,3 +125,65 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     im.close()
     print('Output:', outputfile)
     print('Output:', os.path.join(path, 'func.cal'))
+
+
+def compareCallibratedExcel(path):
+    
+    print('Henter data')
+    plt = plot.Plot()
+    plt.title(first='Kalibreret blank overflade', second='Malet overflade uden kalibration')
+
+    xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
+    data = []
+    for file in xlsx:
+        data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
+
+    data = [i for i in data if not any(map(lambda x: x is None, i))]
+    
+    if len(data) == 0:
+        print('[ERROR] Ingen data')
+        return 
+
+    # calibrated
+    cxlsx = glob.glob(os.path.join(path, 'calibrated', '*.xlsx'))
+    cdata = []
+    for file in cxlsx:
+        cdata.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
+
+    cdata = [i for i in cdata if not any(map(lambda x: x is None, i))]
+
+    if len(cdata) == 0:
+        print('[ERROR] Ingen data')
+        return 
+
+    # x,y
+    ax = [cdata[i][3] for i in range(len(data))]
+    ay = [data[i][0] for i in range(len(data))]
+    
+    bx = [cdata[i][1] for i in range(len(data))]
+    by = [data[i][2] for i in range(len(data))]
+    
+    x = [*ax, *bx]
+    y = [*ay, *by]
+
+    # plot
+    reg = regression(lambda x,a,b: a*x+b, x,y)
+    a,b = reg[0]
+
+    func = objects.Function(lambda x,a,b: a*x+b, a=a, b=b).legend('Reg: a={}, b={}, r^2={}'.format(a,b,rsquared(x,y,lambda x: a*x+b)))
+    points = objects.Points(x,y, size=15)
+
+    plt.add(points)
+    plt.add(func)
+
+    outputfile = os.path.join(path, 'compare-'+os.path.split(path)[-1].replace('-res','')+'.png')
+    plt.save(outputfile)
+    im = Image.open(outputfile)
+    im.show()
+    im.close()
+    print('Output:', outputfile)
+
+
+def callibrateExcelAndShow(folder, calfile):
+    callibrateExcel(folder, calfile)
+    compareCallibratedExcel(folder)

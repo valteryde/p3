@@ -4,8 +4,8 @@ from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
 from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
-from camera import callibrateASCII
-from camera import createFolder
+from camera import callibrateASCII, callibrateExcel
+from camera import createFolder, callibrateExcelAndShow
 from test import main as test
 from _thread import start_new_thread
 import datetime
@@ -156,6 +156,43 @@ def calibrateData():
 
 
 
+def excelCallibrateSecondChoice(choice):
+    basepath = 'files'
+    files = os.listdir(basepath)
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [folder.replace('-res', '') for folder in files if 'temperature' in os.listdir(os.path.join(basepath,folder))]
+    choice2 = selectionWindow('Vælg datasæt',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice2[0] == 0:
+        return False
+    
+    if choice2[0] == 1:
+        openFilesFolder()
+        return False
+
+    clear()
+    callibrateExcelAndShow(os.path.join(basepath,choice2[1]+'-res'), os.path.join(basepath, choice[1]+'-res', 'func.cal'))
+    return True
+
+
+def excelCalibrateData():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [folder.replace('-res', '') for folder in files if 'func.cal' in os.listdir(os.path.join(basepath,folder))]
+    choice = selectionWindow('Vælg kaliberingsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    return wrapper(excelCallibrateSecondChoice, excelCalibrateData, choice)
+
+
 def starLineExpress():
     basepath = 'files'
     files = os.listdir(basepath)
@@ -229,7 +266,6 @@ def camera():
         if not(i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] not in ['-res', '-cal']):continue
         createFolder(os.path.join('files',i+'-res'), remove=False)
     
-
     choice = selectionWindow('Termisk kamera',[
             "<-- Gå tilbage",
             "Dan kalliberingskurve",
@@ -237,7 +273,8 @@ def camera():
             "Aflæs temperature",
             "Aflæs temperature [Manualt]",
             "Dan kallibreringskurve på data [Manuelt]",
-            "Kallibrer datasæt",
+            "Kallibrer datasæt [ASCII]",
+            "Kallibrer allerede aflæst datasæt [excel]",
         ])
 
     if choice[0] == 0:
@@ -260,6 +297,9 @@ def camera():
 
     if choice[0] == 6:
         wrapper(calibrateData, camera)
+
+    if choice[0] == 7:
+        wrapper(excelCalibrateData, camera)
 
 def main():
     

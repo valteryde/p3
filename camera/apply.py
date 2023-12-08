@@ -5,6 +5,8 @@ from .loader import loadASCIIFile, saveASCIIFile, createFolder
 import glob
 import os 
 import tqdm
+import kaxe
+import openpyxl as pxl
 
 #https://stackoverflow.com/questions/2371436/evaluating-a-mathematical-expression-in-a-string
 # supported operators
@@ -93,5 +95,33 @@ def callibrateASCII(asciifolder, calfile):
         pbar.update(freq)
 
     pbar.close()
+    print('Callibrated {} temperatures, ignored {} temperatures'.format(cal, notcal))
+    print('Output:',outputfolder)
+
+
+def callibrateExcel(folder, calfile):
+    global notcal, cal
+    notcal, cal = 0, 0
+    
+    calfunc = loadCalFunction(calfile)
+
+    xlsxfolderpath = os.path.join(folder,'temperature')
+    outputfolder = os.path.join(folder, 'calibrated')
+    createFolder(outputfolder)
+    files = glob.glob(os.path.join(xlsxfolderpath, '*.xlsx'))
+
+    for file in files:
+        workbook = pxl.Workbook()
+        sheet = workbook.active
+        data = kaxe.data.loadExcel(file, 'Sheet', (1,1), (4,-1))
+        pbar = tqdm.tqdm(total=len(data))
+
+        for t1, t2, t3, t4 in data:
+            sheet.append((calfunc(t1), calfunc(t2), calfunc(t3), calfunc(t4)))
+            pbar.update()
+        pbar.close()
+        workbook.save(os.path.join(outputfolder,os.path.split(file)[-1]))
+        workbook.close()
+
     print('Callibrated {} temperatures, ignored {} temperatures'.format(cal, notcal))
     print('Output:',outputfolder)
