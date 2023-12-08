@@ -103,7 +103,7 @@ def saveAllImages(folderName,prefix):
  
     filesInResFolder = os.listdir(folderpath)
 
-    skipframesfreq = int(input('Skip frames:'))
+    skipframesfreq = int(input('Hvor mange frames ønskes? 1 ud af'))
 
     pbar = tqdm.tqdm(total=len(files))
     for i, fileName in enumerate(files):
