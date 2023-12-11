@@ -32,6 +32,7 @@ class HeatEquationModel:
         self.saveRelativeScale = True
         self.saveAsImage = False
         self.correctionFunction = None
+        self.convection = None
         
         self.rules = {}
         self.globalRules = []
@@ -119,64 +120,15 @@ class HeatEquationModel:
         return frame
 
 
-    def __depcorrect__(self, heap, t):
-        if not self.correctionFunction: return
-        if self.correctionMap is None:
-            self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
-            return
-
-        # get map
-        arr = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
-        
-        diffTemps = [[temp - self.correctionMap[rowNum][colNum] for colNum, temp in enumerate(row)] for rowNum, row in enumerate(arr)]
-        #print(diffTemps)
-
-        startTemp = sum([sum(row) for row in self.correctionMap])
-
-        totalNodes = (self.len[0]) * (self.len[1])
-        correctTemp = self.correctionFunction(t, None) * totalNodes
-
-        #print(startTemp)
-
-        diffStartCorrect = correctTemp - startTemp  #60 - 50 = 10
-        diffStartSimulation = sum([sum(row) for row in arr]) - startTemp # 55 - 60 = 5
-
-        diffproc = diffStartCorrect / diffStartSimulation
-        #print(diffStartCorrect / totalNodes, diffStartSimulation / totalNodes, diffproc)
-
-        # if not (0.5 < diffproc < 1.5):
-        #     diffproc = 1
-
-        #print(heap, diffproc, startTemp, correctTemp, sum([sum(row) for row in arr]), sum([sum(row) for row in diffTemps]), diffStartSimulation, diffStartCorrect)
-
-        #print(diffproc)
-        # tæt på 0, for høj korrigering
-        interval = [0.9, 1.1]
-        diffproc = min(max(diffproc, interval[0]), interval[1])
-
-        # if (-10e-3 < diffproc < 10e-3):
-        #     self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
-        #     return
-
-        # update
-        for i in range(self.len[0]):
-            for j in range(self.len[1]):
-                self.hmap[i,j,heap] = self.correctionMap[i][j] + diffTemps[i][j] * diffproc
-
-        # set new correction map
-        self.correctionMap = np.array([[self.hmap[i,j,heap] for j in range(self.len[1])] for i in range(self.len[0])])
-        #print((startTemp - sum([sum(row) for row in self.correctionMap])), (correctTemp - sum([sum(row) for row in self.correctionMap])) / totalNodes)
-
-
-
     def __correct__(self, heap, t):
         if not self.correctionFunction: return
 
-        surroundingTemperature = 20
+        surroundingTemperature = 0
         currentTemp = sum([sum([self.hmap[i,j,heap] for j in range(self.len[1])]) for i in range(self.len[0])])
+        currentTempAvg = currentTemp / (self.len[0] * self.len[1])
 
-        if surroundingTemperature >= currentTemp:
-            return
+        # if surroundingTemperature >= currentTempAvg:
+        #     return
 
         totalNodes = (self.len[0]) * (self.len[1])
         heatloss = {}
@@ -184,6 +136,11 @@ class HeatEquationModel:
 
         for i in range(self.len[0]):
             for j in range(self.len[1]):
+                
+                if surroundingTemperature > self.hmap[i,j,heap]:
+                    heatloss[i,j] = 0
+                    continue
+
                 diff = self.hmap[i,j,heap] - surroundingTemperature
                 # if diff < 0: diff = 0
                 heatloss[i,j] = diff
@@ -196,9 +153,8 @@ class HeatEquationModel:
 
         # if gamma < 0.5:
         #     return
-
-        if abs(heatlossSum) < 1000:
-            return
+        # if abs(heatlossSum) < 1000:
+        #     return
         #print(gamma, correctTemp/totalNodes, currentTemp/totalNodes, correctTemp - currentTemp, tspoida, heatlossSum)
         
         # update
@@ -220,6 +176,19 @@ class HeatEquationModel:
         self.correctionFunction = func
 
 
+    def addConvection(self, h, density, heatcapacity, Tsurr=20):
+        """
+        h / (heatcapacity * density*sizestep*sizestep), Tsurr
+        deltaT = h*A*(T - T__omg)*t/(m*c)
+        htemp = h/(m*c)
+        """
+        htemp = h / (heatcapacity * density*self.sizeStep*self.sizeStep)
+        self.convection = (
+            htemp*(self.sizeStep**2)*self.timeStep,
+            Tsurr
+        )
+
+
     def run(self, breakFuntion=lambda *args: False) -> None:
         """
         para: (
@@ -228,7 +197,6 @@ class HeatEquationModel:
         )
 
         alg:
-
             to keep hmap size low, we do the model in heaps of 10 iterations.
         """
 
@@ -270,7 +238,7 @@ class HeatEquationModel:
                 
                 if breakFuntion(timeElapsed, tempDiffrence, minTemp, maxTemp, heap): break
 
-        except ImportError:
+        except ImportError: #---
             error = True
             type, value, traceback = sys.exc_info()
             print('[Error]')
@@ -399,6 +367,9 @@ class HeatEquationModel:
         if self.rules.get((i,j)): #kan kun sætte en regel på hver, brug sets for ikkke at have dobbels.
             T = self.rules[i,j](T, n, n*self.timeStep, self.timeStep)
 
+        if self.convection:
+            T -= self.convection[0] * (T - self.convection[1])
+
         self.hmap[i,j,n] = T
 
         return T
@@ -418,7 +389,8 @@ class HeatEquationModel:
         # 1 is vertical neighbour (vn)
         # 3 is horizontal neighbour (hn)
 
-        return ( self.T(*vn, n-1) + self.T(*hn, n-1) + self.T(i, j, n-1) * (1 / (2 * self.F0 ) - 2) ) * 2 * self.F0
+        # return ( self.T(*vn, n-1) + self.T(*hn, n-1) + self.T(i, j, n-1) * (1 / (2 * self.F0 ) - 2) ) * 2 * self.F0
+        return ( self.T(*vn, n-1) + self.T(*hn, n-1) + self.T(i, j, n-1) * (1 / self.F0 - 2) ) * self.F0
 
 
     # sides
@@ -432,4 +404,6 @@ class HeatEquationModel:
         """
 
         #[2*T[2]^n + T[4]^n + T[0]^n - (4 - 1/F__0)*T[1]^n]*F__0 = T[1]^(n + 1)
-        return self.F0 * ( 2 * self.T(*n2, n-1) + self.T(*n0, n-1) + self.T(*n4, n-1) + (1/self.F0 - 4) * self.T(i, j, n-1) )
+        #NOTE: jeg her ændret 2 til 1 her
+        # return self.F0 * ( 2 * self.T(*n2, n-1) + self.T(*n0, n-1) + self.T(*n4, n-1) + (1/self.F0 - 4) * self.T(i, j, n-1) )
+        return self.F0 * ( self.T(*n2, n-1) + self.T(*n0, n-1) + self.T(*n4, n-1) + (1/self.F0 - 3) * self.T(i, j, n-1) )

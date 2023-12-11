@@ -53,11 +53,7 @@ class HeatSource:
         self.rule = rule
     
     
-    # def gaussianblur(self, center, radius, stDev=3):
-    #     pass
-
-
-    def circle(self, center, radius, blur=1):
+    def circle(self, center, radius):
         """
         center and radius corrosponding to mesh sizes
         """
@@ -65,42 +61,39 @@ class HeatSource:
         height = len(self.model.mesh)
         width = len(self.model.mesh[0])
 
-        totalPixelsInShape = 0
-
         pixels = {}
-        sumBlur = 0
+        sumIntensity = 0
 
-        sigma = (radius / 2) * blur
+        sigma = (radius / 2)
 
         for i in range(-int(radius)*2,width+int(radius)*2):
 
             for j in range(-int(radius)*2, height+int(radius)*2):
 
                 d = math.sqrt((center[0]-i)**2+(center[1]-j)**2)
-                
-                if d < radius:
-                    val = 1/(math.sqrt(2 * math.pi * sigma**2))*math.exp((-d**2)/(2*sigma**2))
-                    sumBlur += val
-                    totalPixelsInShape += 1
+                val = 1/(math.sqrt(2 * math.pi * sigma**2))*math.exp((-d**2)/(2*sigma**2))
+                sumIntensity += val
                     
-                    if (0 <= i <= width) and (0 <= j <= height):
-                        pixels[i,j] = val
+                if (0 <= i <= width) and (0 <= j <= height):
+                    pixels[i,j] = val
 
         self.deltaEnergy = self.effect * self.model.timeStep
         self.deltaTemperature = self.deltaEnergy / (self.heatCapacity * self.massPerPixel)
 
         for key in pixels:
 
-            pixels[key] = (pixels[key] / sumBlur) * self.deltaTemperature
+            pixels[key] = (pixels[key] / sumIntensity) * self.deltaTemperature
+
+        s = 0
+        for key in pixels:
+            s += pixels[key]
+        print('\033[93mDer tilføjes {} grader hver frame ud af {} tilgængelige grader ({}%)\033[0m'.format(self.model.sizeStep**2 * s, self.model.sizeStep**2 * s, s/self.deltaTemperature*100))
 
         def rule(i, j, T, n, t, dt):
 
-            d = math.sqrt((center[0]-i)**2+(center[1]-j)**2)
+            #d = math.sqrt((center[0]-i)**2+(center[1]-j)**2)
 
-            if d < radius:
-                return T + pixels[i,j]
-            
-            return T
+            return T + pixels.get((i,j), 0)
 
         self.rule = rule
 
