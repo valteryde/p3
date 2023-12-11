@@ -29,13 +29,19 @@ def showImage(path):
     outer = [(i[3],i[0]) for i in data]
     data = [*inner, *outer]
 
+
     pl = plot.Plot()
     pl.title(first='Blank overflade', second='Malet overflade')
-    
+
     x = [i[0] for i in data]
     y = [i[1] for i in data]
     p = objects.Points(x,y, size=15).legend('Målt')
     pl.add(p)
+
+    #minmaxy = [y[i] for i in range(len(y))]
+
+    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(max(minmaxy))))
+    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(min(minmaxy))))
 
     pl.save('.__prereg.png')
     im = Image.open('.__prereg.png')
@@ -127,11 +133,18 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     print('Output:', os.path.join(path, 'func.cal'))
 
 
-def compareCallibratedExcel(path):
+def compareCallibratedExcel(path, calfuncname):
+    interval = [None, None]
     
+    if input('Ændre grænser? [Y/N]:').lower() == 'y':
+        a = int(input('Nedre grænse:'))
+        b = int(input('Øvre grænse:'))
+        interval = [a,b]
+
     print('Henter data')
-    plt = plot.Plot()
-    plt.title(first='Kalibreret blank overflade', second='Malet overflade uden kalibration')
+    plt = plot.Plot([None, None, *interval])
+    plt.style(windowHeight=3000,windowWidth=3000,fontSize=60)
+    plt.title(first='Kalibreret blank overflade', second='Malet overflades afvigelse')
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
     data = []
@@ -166,6 +179,19 @@ def compareCallibratedExcel(path):
     x = [*ax, *bx]
     y = [*ay, *by]
 
+    y = [y[i] for i in range(len(y))]
+
+    #if interval[0] and interval[1]:
+    #    minmaxy = [i for i in y if interval[0] < i < interval[1]]
+    #else:
+    #    minmaxy = y
+
+    #funcmax = objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(max(minmaxy)))
+    #funcmin = objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(min(minmaxy)))
+    
+    # plt.add(funcmax)
+    # plt.add(funcmin)
+
     # plot
     reg = regression(lambda x,a,b: a*x+b, x,y)
     a,b = reg[0]
@@ -176,7 +202,7 @@ def compareCallibratedExcel(path):
     plt.add(points)
     plt.add(func)
 
-    outputfile = os.path.join(path, 'compare-'+os.path.split(path)[-1].replace('-res','')+'.png')
+    outputfile = os.path.join(path, calfuncname.replace('-res','') +'-compare-'+os.path.split(path)[-1].replace('-res','')+'.png')
     plt.save(outputfile)
     im = Image.open(outputfile)
     im.show()
@@ -186,4 +212,4 @@ def compareCallibratedExcel(path):
 
 def callibrateExcelAndShow(folder, calfile):
     callibrateExcel(folder, calfile)
-    compareCallibratedExcel(folder)
+    compareCallibratedExcel(folder, calfile.split(os.path.sep)[-2])
