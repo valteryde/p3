@@ -81,8 +81,10 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     outer = [(i[3],i[0]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
-    bordervalues.insert(0, min(data, key=lambda d: d[0])[0])
-    bordervalues.append(max(data, key=lambda d: d[0])[0])
+    #bordervalues.insert(0, min(data, key=lambda d: d[0])[0])
+    #bordervalues.append(max(data, key=lambda d: d[0])[0])
+    bordervalues.insert(0, -math.inf)
+    bordervalues.append(math.inf)
 
     funcs = []
     points = []
