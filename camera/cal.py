@@ -50,6 +50,8 @@ def showImage(path):
     im.close()
 
 
+
+
 def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     
     print('\033[96m'+'Vælg grænseværdier [Skriv et bogstav for at færdiggøre + Tryk enter]'+'\033[0m')

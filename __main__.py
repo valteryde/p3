@@ -4,7 +4,7 @@ from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
 from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
-from camera import callibrateASCII, callibrateExcel
+from camera import callibrateASCII, callibrateExcel, showImageMT, starLineExpressMT
 from camera import createFolder, callibrateExcelAndShow
 from test import main as test
 from _thread import start_new_thread
@@ -257,6 +257,28 @@ def cameraConvertFolder():
     convertFolder(os.path.join(basepath,choice[1]))
     return True
 
+def Mathias_test_menu():
+    choice = selectionWindow('vælg funktion',
+        ["<-- Gå tilbage",
+        "Dan kalliberingskurve",
+        "Aflæs temperature [Manualt]",
+        "Dan kallibreringskurve på data [Manuelt]"]
+    )
+
+    if choice[0] == 0:
+        return
+
+    if choice[0] == 1:
+        wrapper(starLineExpressMT, Mathias_test_menu)    
+        
+    if choice[0] == 2:
+        return
+    
+    if choice[0] == 3:
+        return
+    
+
+
 
 def camera():
     
@@ -275,6 +297,7 @@ def camera():
             "Dan kallibreringskurve på data [Manuelt]",
             "Kallibrer datasæt [ASCII]",
             "Kallibrer allerede aflæst datasæt [excel]",
+            "Mathias_test_menu"
         ])
 
     if choice[0] == 0:
@@ -300,6 +323,9 @@ def camera():
 
     if choice[0] == 7:
         wrapper(excelCalibrateData, camera)
+    
+    if choice[0] == 8:
+        wrapper(Mathias_test_menu, camera)
 
 def main():
     
