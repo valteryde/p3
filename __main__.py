@@ -4,8 +4,9 @@ from interface import selectWrapper as wrapper
 from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
 from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
-from camera import callibrateASCII, callibrateExcel, showImageMT, starLineExpressMT
+from camera import callibrateASCII, callibrateExcel
 from camera import createFolder, callibrateExcelAndShow
+from camera import showImageMT, starLineExpressMT, createRegressionMT
 from test import main as test
 from _thread import start_new_thread
 import datetime
@@ -261,7 +262,6 @@ def Mathias_test_menu():
     choice = selectionWindow('vælg funktion',
         ["<-- Gå tilbage",
         "Dan kalliberingskurve",
-        "Aflæs temperature [Manualt]",
         "Dan kallibreringskurve på data [Manuelt]"]
     )
 
@@ -272,12 +272,28 @@ def Mathias_test_menu():
         wrapper(starLineExpressMT, Mathias_test_menu)    
         
     if choice[0] == 2:
-        return
+        wrapper(regressionManualMT, Mathias_test_menu)
     
-    if choice[0] == 3:
-        return
-    
+def regressionManualMT():
+    basepath = 'files'
+    files = os.listdir(basepath)
 
+    files = [i.replace('-res', '') for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    choice = selectionWindow('Vælg mappe',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    clear()
+    showImageMT(os.path.join(basepath,choice[1]+'-res'))
+    #typereg = selectionWindow('Vælg type af regression',REGRESSIONSNAMES)
+    #resetColor()
+    #createRegressionMT(os.path.join(basepath,choice[1]+'-res'), *REGRESSIONS[typereg[0]])
+    #return True
 
 
 def camera():

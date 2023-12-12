@@ -4,4 +4,4 @@ from .loader import loadASCIIFile, getSortedFolder, createFolder
 from .png import convertFolder, mapColor
 from .cal import createRegression, showImage, callibrateExcelAndShow
 from .apply import callibrateASCII, callibrateExcel
-from .Mathias_test import showImageMT,starLineExpressMT
+from .Mathias_test import showImageMT,starLineExpressMT,createRegressionMT
