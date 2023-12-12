@@ -25,7 +25,6 @@ class Marker:
         self.text = text
         self.x = x
         self.axis = axis
-        self.batch = shapes.Batch()
         
         self.markerLength = markerLength
         self.markerWidth = markerWidth
@@ -44,7 +43,7 @@ class Marker:
 
         if self.showLine:
             p1, p2 = parent.line(self.axis.get(self.x), self.axis.v)
-            self.line = shapes.Line(*p1, *p2, color=self.gridlineColor, batch=self.batch)
+            self.line = shapes.Line(*p1, *p2, color=self.gridlineColor)
         
         pos = parent.translate(*self.axis.get(self.x))
 
@@ -75,7 +74,7 @@ class Marker:
             self.line = None
             return
 
-        self.tickLine = shapes.Line(*p1, *p2, color=self.color, width=self.markerWidth, batch=self.batch, center=True)
+        self.tickLine = shapes.Line(*p1, *p2, color=self.color, width=self.markerWidth, center=True)
         if not self.showNumber:
             return
 
@@ -109,7 +108,8 @@ class Marker:
         self.textLabel.x += n[0] * nudge
         self.textLabel.y += n[1] * nudge
 
-        parent.addDrawingFunction(self)
+        parent.addDrawingFunction(self.line)
+        parent.addDrawingFunction(self.tickLine, 2)
         parent.addDrawingFunction(self.textLabel, 2)
         
         # dx = min(self.textLabel.x - self.textLabel.width/2, 0)
@@ -121,14 +121,6 @@ class Marker:
 
         # if dx < 0 or dy < 0 or dxm < 0 or dym < 0:
         #     parent.addPaddingCondition(left=-(dx), bottom=-(dy), right=-(dxm), top=-(dym))
-
-
-    def draw(self, *args, **kwargs):
-        self.batch.draw(*args, **kwargs)
-
-
-    def push(self, x, y):
-        self.batch.push(x,y)
 
 
     def getBoundingBox(self):
@@ -300,7 +292,7 @@ class Axis:
         self.lineEndPoint = p2
 
         self.shapeLine = shapes.Line(p1[0], p1[1], p2[0], p2[1], color=self.color, width=self.width)
-        parent.addDrawingFunction(self)
+        parent.addDrawingFunction(self, 2)
 
     
     def __boxOverlays__(self, aCenterPos, aSize, bCenterPos, bSize):

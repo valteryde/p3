@@ -30,18 +30,18 @@ def showImage(path):
     data = [*inner, *outer]
 
     pl = plot.Plot()
-    pl.style(windowHeight=2000,windowWidth=2000,fontSize=40)
-    pl.title(first='Blank overflade', second='Malet overflade')
+    pl.style(windowHeight=2000,windowWidth=2000,fontSize=60)
+    pl.title(first='Blank overflade', second='Malet overflades')
 
     x = [i[0] for i in data]
     y = [i[1] for i in data]
-    p = objects.Points(x,y, size=15).legend('Målt')
+    p = objects.Points(x,y, size=15,color=(242,196,58,255)).legend('Målt')
     pl.add(p)
 
     #minmaxy = [y[i] for i in range(len(y))]
 
-    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(max(minmaxy))))
-    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(min(minmaxy))))
+    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
+    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
 
     pl.save('.__prereg.png')
     im = Image.open('.__prereg.png')
@@ -115,7 +115,7 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
         plt.add(i)
     for i in funcs:
         plt.add(i)
-
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     createCalFunction(os.path.join(path, 'func.cal'), fs)
 
     # reg = regression(lambda x,a,b,c: a*np.power(x, 2) + b*x + c, x, y)
@@ -143,7 +143,7 @@ def compareCallibratedExcel(path, calfuncname):
 
     print('Henter data')
     plt = plot.Plot([None, None, *interval])
-    plt.style(windowHeight=3000,windowWidth=3000,fontSize=60)
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     plt.title(first='Kalibreret blank overflade', second='Malet overflades afvigelse')
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
@@ -179,28 +179,29 @@ def compareCallibratedExcel(path, calfuncname):
     x = [*ax, *bx]
     y = [*ay, *by]
 
-    y = [y[i] for i in range(len(y))]
+    y = [y[i]-x[i] for i in range(len(y))]
 
-    #if interval[0] and interval[1]:
-    #    minmaxy = [i for i in y if interval[0] < i < interval[1]]
-    #else:
-    #    minmaxy = y
+    if interval[0] and interval[1]:
+        minmaxy = [i for i in y if interval[0] < i < interval[1]]
+    else:
+        minmaxy = y
 
-    #funcmax = objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(max(minmaxy)))
-    #funcmin = objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(min(minmaxy)))
+    funcmax = objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3)))
+    funcmin = objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3)))
     
-    # plt.add(funcmax)
-    # plt.add(funcmin)
+    plt.add(funcmax)
+    plt.add(funcmin)
 
     # plot
     reg = regression(lambda x,a,b: a*x+b, x,y)
     a,b = reg[0]
 
-    func = objects.Function(lambda x,a,b: a*x+b, a=a, b=b).legend('Reg: a={}, b={}, r^2={}'.format(a,b,rsquared(x,y,lambda x: a*x+b)))
-    points = objects.Points(x,y, size=15)
+   #func = objects.Function(lambda x,a,b: a*x+b, a=a, b=b).legend('Reg: a={}, b={}, r^2={}'.format(a,b,rsquared(x,y,lambda x: a*x+b)))
+    points = objects.Points(x,y, size=15,color=(242,196,58,255))
 
+    
     plt.add(points)
-    plt.add(func)
+    #plt.add(func)
 
     outputfile = os.path.join(path, calfuncname.replace('-res','') +'-compare-'+os.path.split(path)[-1].replace('-res','')+'.png')
     plt.save(outputfile)
