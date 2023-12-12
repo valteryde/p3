@@ -69,11 +69,12 @@ def showImageMT(path): #regression ligning
     #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
     #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
 
-    pl.save('.__prereg.png')
-    im = Image.open('.__prereg.png')
+    outputfile = os.path.join(path, os.path.split(path)[-1])
+    pl.save(outputfile)
+    #im = Image.open('.__prereg.png')
     #os.remove('.__prereg.png')
-    im.show()
-    im.close()
+    #im.show()
+    #im.close()
 
 
 def starLineExpressMT(path): #kaliberings graf

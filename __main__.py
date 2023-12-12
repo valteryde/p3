@@ -312,8 +312,8 @@ def camera():
             "Aflæs temperature [Manualt]",
             "Dan kallibreringskurve på data [Manuelt]",
             "Kallibrer datasæt [ASCII]",
-            "Kallibrer allerede aflæst datasæt [excel]",
-            "Mathias_test_menu"
+            "Kallibrer allerede aflæst datasæt [excel]"#,
+            #"Mathias_test_menu"
         ])
 
     if choice[0] == 0:
@@ -340,8 +340,8 @@ def camera():
     if choice[0] == 7:
         wrapper(excelCalibrateData, camera)
     
-    if choice[0] == 8:
-        wrapper(Mathias_test_menu, camera)
+   #if choice[0] == 8:
+    #    wrapper(Mathias_test_menu, camera)
 
 def main():
     
