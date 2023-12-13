@@ -189,7 +189,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 30
+    leftLineIndex += 10
 
     ### STEP 4 ###
     # find laser center
