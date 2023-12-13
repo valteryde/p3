@@ -426,7 +426,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     saveMask(mask, 'mask-cato.png')
 
-    return mask, (offset[0]+round(laseroffsetavg), offset[1])
+    return mask, (offset[0]-round(laseroffsetavg), offset[1])
 
 
 def getTempFromFrameWithMask(fpath, mask, maskpos):
