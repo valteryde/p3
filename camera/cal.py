@@ -31,7 +31,6 @@ def showImage(path):
 
     # pl = plot.Plot([0,400,0,500])
     pl = plot.Plot()
-    # pl.style(windowWidth=2000, windowHeight=2000, fontSize=75)
     pl.title(first='Blank overflade', second='Malet overflade')
 
     x = [i[0] for i in data]
