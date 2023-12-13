@@ -29,9 +29,8 @@ def showImage(path):
     outer = [(i[3],i[0]) for i in data]
     data = [*inner, *outer]
 
-
+    # pl = plot.Plot([0,400,0,500])
     pl = plot.Plot()
-    pl.style(windowHeight=2000,windowWidth=2000,fontSize=40)
     pl.title(first='Blank overflade', second='Malet overflade')
 
     x = [i[0] for i in data]

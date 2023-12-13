@@ -189,7 +189,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 30
+    leftLineIndex += 20
 
     ### STEP 4 ###
     # find laser center
@@ -200,7 +200,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     saveMask(mask, os.path.join(folder,'mask-2.png'))
 
     # make lines, laser burde være en cirkel. Linjer burde være uafbrudte
-    maxLine = (0,0, 0) # (pos, val, center)
+    maxLine = (0, 0, 0) # (pos, val, center)
     for rowNum, row in enumerate(mask):
         
         lineLength = 0
@@ -214,6 +214,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
         if lineLength > maxLine[1]:
             maxLine = (rowNum,lineLength, colNum-lineLength//2)
 
+
     ### STEP 5 ###
     # assume length 
     ratio = shape[0] / shape[1]
@@ -221,6 +222,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
+    laserTopPos = topPos
     im = im.crop((*topPos, *bottomPos))
     im.save(os.path.join('debug',folder,'test.png'))
 
@@ -232,7 +234,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     topPos = (int(warmMaskMin[1]+leftLineIndex+(pixelHeight * ratio)//2), int(warmMaskMin[0]))
 
     # add padding
-    padding = 5
+    padding = 10
     topPos = (topPos[0]+padding, topPos[1]+padding)
     bottomPos = (bottomPos[0]-padding, bottomPos[1]-padding)
     offset = topPos
@@ -266,43 +268,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
                 
         # print(minTemp, avgTemp, maxTemp)
     
-    # clean up
-
-    # mask.reverse() # NOTE: SLET
     saveMask(mask, os.path.join(folder,'mask-area.png'))
 
-    ### STEP 7 ###
-    # tjek hvilke linjer der er flest på
-    # tag linjerne hvor der er 90% af den længte linje
-    # tæl bokse
-
-    # split
-    # intervals = []
-    # lastIntervalValue = -1
-    # for rowNum, row in enumerate(mask):
-        
-    #     stopped = False
-    #     for colNum, val in enumerate(row):
-            
-    #         if val:
-    #             stopped = True
-    #             break
-        
-    #     if not stopped: #guardclause
-    #         continue
-        
-    #     if len(intervals) > 0 and lastIntervalValue + 1 == rowNum:
-    #         lastIntervalValue = rowNum
-    #         continue
-
-    #     intervals.append(rowNum)
-    #     lastIntervalValue = rowNum
-
-    # intervals.append(len(mask))
-
-    # linjer
-    # mask = [[0 for _ in range(len(data[0]))] for _ in range(len(data))]
-    # for i in range(len(intervals)-1):
     filteroutLineNoise(mask, 0)
 
     saveMask(mask, os.path.join(folder,'mask-filter-noise.png'))
@@ -337,7 +304,11 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     saveMask(fullmask, os.path.join(folder,'mask-full.png'))
 
-    return fullmask
+    #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
+
+    laseroff = laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2
+
+    return fullmask, laseroff - pixelHeight//2
 
 
 def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
@@ -357,15 +328,23 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     pbar = tqdm.tqdm(total=maskheapsize, desc="Laver maske")
     i = 0
     c = 0
+    laseroffsetsum = 0 
     while c < maskheapsize:
         file = files[randint(0,len(files)-1)]
         i += 1
-        mask = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
-        masks.append(mask)
-        
-        if mask:
+        res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
+        if res:
+            masks.append(res[0])
+            laseroffsetsum += res[1]
             pbar.update()
             c += 1
+
+    laseroffsetavg = laseroffsetsum / 10
+    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(laseroffsetavg))
+    if input('Skal dette ændres? [Y/N] ').lower() != 'y':
+        laseroffsetavg = 0
+    else:
+        print('Dette blive ændret')
 
     pbar.close()
 
@@ -409,6 +388,9 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     filteroutLineNoise(cmask)
     newmask = [[] for _ in cmask]
     lastMark = None
+
+    paddingCoeff = 0.3 # skal være under 0.5
+
     maxPadding = 20
     lastChange = 0
     for rowNum, row in enumerate(cmask):
@@ -420,8 +402,8 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
             if lastChange != rowNum:
                 
-                padding = min(maxPadding, round(abs(rowNum - lastChange) * .3))
-
+                padding = min(maxPadding, round(abs(rowNum - lastChange) * paddingCoeff))
+                print('Padding:',padding)
                 for i in range(lastChange, lastChange+padding):
                     newmask[i] = [0 for _ in row]
                 for i in range(rowNum-padding, rowNum):
@@ -433,7 +415,8 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
         lastMark = mark
 
     # add last padding and last box
-    padding = min(maxPadding, round(abs(rowNum - lastChange) * .2))
+    padding = min(maxPadding, round(abs(rowNum - lastChange) * paddingCoeff))
+    print('Padding:',padding)
     for i in range(lastChange, lastChange+padding):
         newmask[i] = [0 for _ in row]
     for i in range(rowNum-padding, rowNum+1):
@@ -443,7 +426,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     saveMask(mask, 'mask-cato.png')
 
-    return mask, offset
+    return mask, (offset[0]-round(laseroffsetavg), offset[1])
 
 
 def getTempFromFrameWithMask(fpath, mask, maskpos):
