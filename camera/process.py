@@ -1,7 +1,7 @@
 import math
 import tqdm
 from .loader import loadASCIIFile, getSortedFolder, createFolder
-from .png import createImage, loadFile, mapColor
+from .png import createImage, loadFile, mapColor, mapTempToColor
 from PIL import Image
 import numpy as np
 from math import inf
@@ -13,6 +13,7 @@ from _thread import start_new_thread
 import time
 import sys
 import pyglet as pg
+from .hist import makeHist
 
 WHITE = (255,255,255,255)
 RED = (255,0,0,255)
@@ -124,7 +125,8 @@ def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers
     except Exception as e:
         pass
 
-
+TOPBOTTOMPADDING = 5
+LEFTRIGHTPADDING = 5
 def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     # make folder for debugging
     folder = os.path.join('mask',folder)
@@ -234,9 +236,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     topPos = (int(warmMaskMin[1]+leftLineIndex+(pixelHeight * ratio)//2), int(warmMaskMin[0]))
 
     # add padding
-    padding = 10
-    topPos = (topPos[0]+padding, topPos[1]+padding)
-    bottomPos = (bottomPos[0]-padding, bottomPos[1]-padding)
+    topPos = (topPos[0]+TOPBOTTOMPADDING, topPos[1]+LEFTRIGHTPADDING)
+    bottomPos = (bottomPos[0]-TOPBOTTOMPADDING, bottomPos[1]-LEFTRIGHTPADDING)
     offset = topPos
 
     # im = Image.open('irdata_0011_0100.png')
@@ -382,16 +383,12 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     saveMask(mask, 'mask.png')
 
-    # count boxes and add padding
+    # tæl boxes
     box = 0
     cmask, offset, _ = maskGetBbox(mask, -1)
     filteroutLineNoise(cmask)
     newmask = [[] for _ in cmask]
     lastMark = None
-
-    paddingCoeff = 0.3 # skal være under 0.5
-
-    maxPadding = 20
     lastChange = 0
     for rowNum, row in enumerate(cmask):
         
@@ -401,47 +398,74 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             box += 1
 
             if lastChange != rowNum:
-                
-                padding = min(maxPadding, round(abs(rowNum - lastChange) * paddingCoeff))
-                print('Padding:',padding)
-                for i in range(lastChange, lastChange+padding):
-                    newmask[i] = [0 for _ in row]
-                for i in range(rowNum-padding, rowNum):
-                    newmask[i] = [0 for _ in row]
-
                 lastChange = rowNum
 
         newmask[rowNum] = [box for _ in row]
         lastMark = mark
 
-    # add last padding and last box
-    padding = min(maxPadding, round(abs(rowNum - lastChange) * paddingCoeff))
-    print('Padding:',padding)
-    for i in range(lastChange, lastChange+padding):
-        newmask[i] = [0 for _ in row]
-    for i in range(rowNum-padding, rowNum+1):
-        newmask[i] = [0 for _ in row]
-
     mask = newmask
 
     saveMask(mask, 'mask-cato.png')
 
+    # find højder, -> ide: Anders
+    heights = {}
+    for row in mask:
+        if row[0] not in heights.keys(): heights[row[0]] = 0
+        heights[row[0]] += 1
+    
+    minHeight = min(heights.values()) - 30 # minus padding
+    # skal være lige
+    minHeight += minHeight % 2
+
+    diffHeights = {mark:(heights[mark]-minHeight)/2 for mark in heights}
+    
+    # find centre # (start, slut)
+    numbers = {i:(0,0) for i in diffHeights}
+
+    # virker kun med 4 fingre
+    # for top og bund anvendes center linje dog lagt TOPBOTTOMPADDING til
+    numbers[1] = (
+        diffHeights[1], 
+        heights[1] - diffHeights[1]
+    )
+    numbers[2] = (
+        heights[1] + diffHeights[2], 
+        heights[1] + heights[2] - diffHeights[2]
+    )
+    numbers[3] = (
+        heights[1] + heights[2] + diffHeights[3],
+        heights[1] + heights[2] + heights[3] - diffHeights[3]
+    )
+    numbers[4] = (
+        heights[1] + heights[2] + heights[3] + diffHeights[4],
+        heights[1] + heights[2] + heights[3] + heights[4] - diffHeights[4]
+    )
+    
+    for rowNum, row in enumerate(mask):        
+
+        # er den inden i et af intervalerene?
+        if numbers[row[0]][0] <= rowNum <= numbers[row[0]][1]:
+            continue
+
+        mask[rowNum] = [0 for i in row]
+
+    saveMask(mask, 'mask-cato-med-padding.png')
     return mask, (offset[0]-round(laseroffsetavg), offset[1])
 
 
 def getTempFromFrameWithMask(fpath, mask, maskpos):
     try:
         return __getTempFromFrameWithMask(fpath, mask, maskpos)
-    except Exception as e:
+    except ImportError as e:
         print('\033[93m','Bad frame, skipping {}'.format(fpath), '\033[0m')
-        return False
+        return False, None, None
 
 
 def __getTempFromFrameWithMask(fpath, mask, maskpos):
-    data, minTemp, maxTemp = loadASCIIFile(fpath)
+    data, _, _ = loadASCIIFile(fpath)
     
     temps = {}
-    #img = [[0 for _ in row] for row in mask]
+    #img = [[(0,0,0,255) for _ in row] for row in mask]
     for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
         
         temp = {}
@@ -449,21 +473,28 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
         for rowNum in range(maskpos[0], len(mask)+maskpos[0]):
             
             mark = mask[rowNum-maskpos[0]][colNum-maskpos[1]]
-            
-            if mark not in temp.keys(): temp[mark] = [0,0]
 
+            if mark not in temp.keys(): temp[mark] = [0,0, []]
+
+            # if mark == 0:
+            #     img[rowNum-maskpos[0]][colNum-maskpos[1]] = mapTempToColor(data[rowNum][colNum])
             temp[mark][0] += 1
             temp[mark][1] += data[rowNum][colNum]
+            temp[mark][2].append(data[rowNum][colNum])
 
         temps[colNum-maskpos[1]] = temp
 
+    #if randint(0,100) == 0:
+    #    Image.fromarray(np.array(img, np.uint8)).save(os.path.join('debug', 'test-mask-overaly.png'))
+
     # calculate average
+    beforeTempSpan = []
     for key in temps:
         
-        for i in temps[key]:
+        for i in temps[key]: #maske identifikationer
+            if i != 0: beforeTempSpan.append(max(temps[key][i][2]) - min(temps[key][i][2]))
             temps[key][i] = temps[key][i][1] / temps[key][i][0]
 
-    
     # gør det igen jf. filtrerings algoritmen
     span = [-50, 50]
     res = {}
@@ -476,7 +507,7 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
             i = colNum-maskpos[1]
             mark = mask[rowNum-maskpos[0]][i]
             
-            if mark not in temp.keys(): temp[mark] = [0,0]
+            if mark not in temp.keys(): temp[mark] = [0,0, []]
 
             # filter
             if not (temps[i][mark] + span[0] < data[rowNum][colNum] < temps[i][mark] + span[1]):
@@ -484,16 +515,24 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
             temp[mark][0] += 1
             temp[mark][1] += data[rowNum][colNum]
+            temp[mark][2].append(data[rowNum][colNum])
 
         res[i] = temp
 
     # average igen igen
+    afterTempSpan = []
     for key in res:
         
         for i in res[key]:
+            
+            if res[key][i][0] == 0:
+                res[key][i] = 0
+                continue
+
+            if i != 0: afterTempSpan.append(max(res[key][i][2]) - min(res[key][i][2]))
             res[key][i] = res[key][i][1] / res[key][i][0]
 
-    return res
+    return res, beforeTempSpan, afterTempSpan
 
 def rule(ts) -> list:
     res = []
@@ -563,6 +602,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     saveFreq = freq*1000
     previewFreq = 1000
 
+    tempspan = [[], []]
     for i, file in enumerate(files):
         pbar.update()
 
@@ -578,14 +618,20 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
         if not (i % freq == 0):
             continue
 
-        res = getTempFromFrameWithMask(file, mask, maskpos)
+        res, beforespan, afterspan = getTempFromFrameWithMask(file, mask, maskpos)
         if not res: continue
         r = rule(res)
+        tempspan[0].append(beforespan)
+        tempspan[1].append(afterspan)
 
         for o in r: sheet.append([*o])
         for o in r: table.append([*o])
 
     pbar.close()
+
+    tempspan[0] = [item for sublist in tempspan[0] for item in sublist]
+    tempspan[1] = [item for sublist in tempspan[1] for item in sublist]
+    dumpTempSpanToFile(tempspan)
 
     workbook.save(os.path.join(outputfolder,str(math.ceil(i/saveFreq))+'.xlsx'))
     workbook.close()
@@ -671,3 +717,20 @@ def analyzeFromFolderManual(fpath:str, baseoutputfolder:str="files") -> list:
     start_new_thread(analyzeFromFolderHeavyWork, (files,baseoutputfolder, fpath))
 
     choiceMask(files[randint(0,len(files)-1)], global_mask)
+
+
+def dumpTempSpanToFile(tempspan):
+    """
+    tempspan = [
+        [[*frames span], [*frames span]], #før
+        [[*frames span], [*frames span]] #efter
+    ]
+    """
+    
+    makeHist(tempspan, 'hist.png')
+
+    f = open(os.path.join('debug', 'tempspan-before.txt'), 'w')
+    f.write('\n'.join(map(str, tempspan[0])))
+
+    f = open(os.path.join('debug', 'tempspan-after.txt'), 'w')
+    f.write('\n'.join(map(str, tempspan[1])))
