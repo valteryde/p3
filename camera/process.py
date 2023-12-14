@@ -232,7 +232,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     topPos = (int(warmMaskMin[1]+leftLineIndex+(pixelHeight * ratio)//2), int(warmMaskMin[0]))
 
     # add padding
-    padding = 5
+    padding = 10
     topPos = (topPos[0]+padding, topPos[1]+padding)
     bottomPos = (bottomPos[0]-padding, bottomPos[1]-padding)
     offset = topPos

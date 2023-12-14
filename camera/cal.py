@@ -53,7 +53,14 @@ def showImage(path):
 
 
 def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
-    
+    begræns_y = input('ønskes akse-grænser? [y/n]')
+    interval_y = [None,None]
+    if begræns_y == 'y':
+        a = int(input('nedre akse-grænse:'))
+        b = int(input('øvre akse-grænse:'))
+        interval_y = [a,b]
+
+
     print('\033[96m'+'Vælg grænseværdier [Skriv et bogstav for at færdiggøre + Tryk enter]'+'\033[0m')
     bordervalues = []
     while True:
@@ -75,7 +82,7 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
-    plt = plot.Plot()
+    plt = plot.Plot([None,None,*interval_y])
     plt.title(first='Blank overflade', second='Malet overflade')
     
     inner = [(i[1],i[2]) for i in data if not any(map(lambda x: x is None, i))]

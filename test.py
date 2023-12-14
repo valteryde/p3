@@ -1,7 +1,8 @@
 
 from camera import createRegression, showImage
 from kaxe import resetColor
-from camera import callibrateASCII
+from camera import callibrateASCII, anders_abs_temp_entry, anders_abs_temp_pre, valter_temp_indre_ydre_graf
+
 
 # def main():
 #     # convertFolder('files/data-2')
@@ -24,5 +25,10 @@ def main():
     #     BOLD = '\033[1m'
     #     UNDERLINE = '\033[4m'
     
-    createRegression('files/Forsøg 13-res')
-    callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')
+    #anders_abs_temp_pre('files/TEST-res')
+
+    valter_temp_indre_ydre_graf('files\\Forsøg 22-res')
+
+
+    # createRegression('files/Forsøg 13-res')
+    # callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')

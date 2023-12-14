@@ -6,7 +6,7 @@ from camera import analyzeFromFolder, createRegression, showImage
 from camera import convertFolder, analyzeFromFolderManual
 from camera import callibrateASCII, callibrateExcel
 from camera import createFolder, callibrateExcelAndShow
-from camera import showImageMT, starLineExpressMT, createRegressionMT
+from camera import showImageMT, starLineExpressMT, createRegressionMT, anders_abs_temp_entry,compareCallibratedExcelMT,callibrateExcelAndShowMT
 from test import main as test
 from _thread import start_new_thread
 import datetime
@@ -262,7 +262,10 @@ def Mathias_test_menu():
     choice = selectionWindow('vælg funktion',
         ["<-- Gå tilbage",
         "Dan kalliberingskurve",
-        "Dan kallibreringskurve på data [Manuelt]"]
+        "Dan kallibreringskurve på data [Manuelt]",
+        "anders_abs_temp",
+        "afvigelse af allerede kallibret aflæst datasæt [excel]"]
+
     )
 
     if choice[0] == 0:
@@ -273,6 +276,14 @@ def Mathias_test_menu():
         
     if choice[0] == 2:
         wrapper(regressionManualMT, Mathias_test_menu)
+
+    if choice[0] == 3:
+        wrapper(anders_abs_temp_entry, Mathias_test_menu)
+
+    if choice[0] == 4:
+        wrapper(excelCalibrateDataMT, Mathias_test_menu)
+
+
     
 def regressionManualMT():
     basepath = 'files'
@@ -290,11 +301,45 @@ def regressionManualMT():
     
     clear()
     showImageMT(os.path.join(basepath,choice[1]+'-res'))
-    #typereg = selectionWindow('Vælg type af regression',REGRESSIONSNAMES)
-    #resetColor()
-    #createRegressionMT(os.path.join(basepath,choice[1]+'-res'), *REGRESSIONS[typereg[0]])
-    #return True
+    typereg = selectionWindow('Vælg type af regression',REGRESSIONSNAMES)
+    resetColor()
+    createRegressionMT(os.path.join(basepath,choice[1]+'-res'), *REGRESSIONS[typereg[0]])
+    return True
 
+def excelCalibrateDataMT():
+    basepath = 'files'
+    files = os.listdir(basepath)
+
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [folder.replace('-res', '') for folder in files if 'func.cal' in os.listdir(os.path.join(basepath,folder))]
+    choice = selectionWindow('Vælg kaliberingsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice[0] == 0: 
+        return False
+    
+    if choice[0] == 1:
+        openFilesFolder()
+        return False
+    
+    return wrapper(excelCallibrateSecondChoiceMT, excelCalibrateDataMT, choice)
+
+def excelCallibrateSecondChoiceMT(choice):
+    basepath = 'files'
+    files = os.listdir(basepath)
+    files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
+    files = [folder.replace('-res', '') for folder in files if 'temperature' in os.listdir(os.path.join(basepath,folder))]
+    choice2 = selectionWindow('Vælg datasæt',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+
+    if choice2[0] == 0:
+        return False
+    
+    if choice2[0] == 1:
+        openFilesFolder()
+        return False
+
+    clear()
+    callibrateExcelAndShowMT(os.path.join(basepath,choice2[1]+'-res'), os.path.join(basepath, choice[1]+'-res', 'func.cal'))
+    return True
 
 def camera():
     
@@ -312,8 +357,8 @@ def camera():
             "Aflæs temperature [Manualt]",
             "Dan kallibreringskurve på data [Manuelt]",
             "Kallibrer datasæt [ASCII]",
-            "Kallibrer allerede aflæst datasæt [excel]"#,
-            #"Mathias_test_menu"
+            "Kallibrer allerede aflæst datasæt [excel]",
+            "Mathias_test_menu"
         ])
 
     if choice[0] == 0:
@@ -340,8 +385,8 @@ def camera():
     if choice[0] == 7:
         wrapper(excelCalibrateData, camera)
     
-   #if choice[0] == 8:
-    #    wrapper(Mathias_test_menu, camera)
+    if choice[0] == 8:
+        wrapper(Mathias_test_menu, camera)
 
 def main():
     
