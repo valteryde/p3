@@ -390,7 +390,7 @@ def camera():
 
 def main():
     
-    choice = selectionWindow('MP3 2023 Kalibrering af termisk måling',[
+    choice = selectionWindow('MP3 2023 Kalibrering af termisk måling Mathias test version',[
         "Termisk kamera",
         "Termokobler",
     ])
