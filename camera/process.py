@@ -313,6 +313,10 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     x = laser_y - ((offset[1] - warmMaskMin[0]) + len(mask) // 2)
 
     #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
+
+    # virkede fint gemmer foto
+    createPreviewMaskImage(mask, (offset[1],offset[0]), fpath, os.path.join('debug',folder))
+
     return fullmask, x #laser_y - pixelHeight//2 #x
 
 
