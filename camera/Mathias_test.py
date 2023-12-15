@@ -45,22 +45,23 @@ def clear():
 
 def showImageMT(path): #regression ligning
     print('Laver graf (vent venligst)')
+    print('MT')
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
 
     data = []
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
-    inner = [(i[1],i[2]) for i in data]
-    outer = [(i[3],i[0]) for i in data]
+    inner = [(i[1],i[2]-i[1]) for i in data]
+    outer = [(i[3],i[0]-i[3]) for i in data]
     data = [*inner, *outer]
 
     pl = plot.Plot()
-    pl.style(windowHeight=2000,windowWidth=2000,fontSize=60)
+    pl.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     pl.title(first='Blank overflade', second='Malet overflades')
 
     x = [i[0] for i in data]
-    y = [i[1]-i[0] for i in data]
+    y = [i[1] for i in data]
     p = objects.Points(x,y, size=15,color=(242,196,58,255)).legend('Målt')
     pl.add(p)
 
@@ -71,10 +72,10 @@ def showImageMT(path): #regression ligning
 
     outputfile = os.path.join(path, os.path.split(path)[-1].replace('-res','')+'.png')
     pl.save(outputfile)
-    #im = Image.open('.__prereg.png')
+    im = Image.open(outputfile)
     #os.remove('.__prereg.png')
-    #im.show()
-    #im.close()
+    im.show()
+    im.close()
 
 
 def starLineExpressMT(): #kaliberings graf fra ASCII filer
@@ -126,8 +127,8 @@ def createRegressionMT(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}')
     plt = plot.Plot()
     plt.title(first='Blank overflade', second='Malet overflade')
     
-    inner = [(i[1],i[2]-i[1]) for i in data if not any(map(lambda x: x is None, i))]
-    outer = [(i[3],i[0]-i[3]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
+    inner = [(i[1],i[2]) for i in data if not any(map(lambda x: x is None, i))]
+    outer = [(i[3],i[0]) for i in data if not any(map(lambda x: x is None, i))] #burde tjekke for dårlige pixels
     data = [*inner, *outer]
 
     bordervalues.insert(0, min(data, key=lambda d: d[0])[0])

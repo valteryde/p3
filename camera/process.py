@@ -222,7 +222,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio), int(warmMaskMin[0] + pixelHeight))
+    rightpad = 20
+    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio)-rightpad, int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
     laserTopPos = topPos

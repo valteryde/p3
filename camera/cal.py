@@ -30,7 +30,7 @@ def showImage(path):
     data = [*inner, *outer]
 
     pl = plot.Plot()
-    pl.style(windowHeight=2000,windowWidth=2000,fontSize=60)
+    pl.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     pl.title(first='Blank overflade', second='Malet overflades')
 
     x = [i[0] for i in data]
@@ -126,7 +126,7 @@ def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):
         plt.add(i)
     for i in funcs:
         plt.add(i)
-    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     createCalFunction(os.path.join(path, 'func.cal'), fs)
 
     # reg = regression(lambda x,a,b,c: a*np.power(x, 2) + b*x + c, x, y)
@@ -154,7 +154,7 @@ def compareCallibratedExcel(path, calfuncname):
 
     print('Henter data')
     plt = plot.Plot([None, None, *interval])
-    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     plt.title(first='Kalibreret blank overflade', second='Malet overflades afvigelse')
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
