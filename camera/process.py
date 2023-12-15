@@ -308,9 +308,12 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
 
-    laseroff = (laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2) * 1.011 # warp af billed konstant koeff
+    laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
+    x = laseroff - int(warmMaskMin[0]) + len(mask) // 2
+    print(x, laseroff - pixelHeight//2)
 
-    return fullmask, laseroff - pixelHeight//2
+    x = 6
+    return fullmask, x #laseroff - pixelHeight//2
 
 
 def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
@@ -341,14 +344,13 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             pbar.update()
             c += 1
 
+    pbar.close()
     laseroffsetavg = laseroffsetsum / 10
     print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
-    if input('Skal dette ændres? [Y/N] ').lower() != 'y':
+    if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
         laseroffsetavg = 0
     else:
         print('Dette blive ændret')
-
-    pbar.close()
 
     # filter masks
     # print('\033[93m','{} Bad frame, results may be inaccurate'.format(len([mask for mask in masks if not mask])), '\033[0m')
@@ -408,6 +410,13 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     saveMask(mask, 'mask-cato.png')
 
+    mask = addMarginToMask(mask)
+
+    print('Laseroff', laseroffsetavg)
+    return mask, (offset[0]-round(laseroffsetavg), offset[1])
+
+
+def addMarginToMask(mask) -> list:
     # find højder, -> ide: Anders
     heights = {}
     for row in mask:
@@ -451,7 +460,8 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
         mask[rowNum] = [0 for i in row]
 
     saveMask(mask, 'mask-cato-med-padding.png')
-    return mask, (offset[0]-round(laseroffsetavg), offset[1])
+
+    return mask
 
 
 def getTempFromFrameWithMask(fpath, mask, maskpos):
@@ -466,7 +476,6 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
     data, _, _ = loadASCIIFile(fpath)
     
     temps = {}
-    #img = [[(0,0,0,255) for _ in row] for row in mask]
     for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
         
         temp = {}
@@ -485,8 +494,6 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
         temps[colNum-maskpos[1]] = temp
 
-    #if randint(0,100) == 0:
-    #    Image.fromarray(np.array(img, np.uint8)).save(os.path.join('debug', 'test-mask-overaly.png'))
 
     # calculate average
     beforeTempSpan = []
@@ -603,6 +610,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     saveFreq = freq*1000
     previewFreq = 1000
 
+    print(maskpos)
     tempspan = [[], []]
     for i, file in enumerate(files):
         pbar.update()
@@ -614,7 +622,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
             sheet = workbook.active
         
         if i % previewFreq == 0:
-            createPreviewMaskImage(mask, maskpos,file, os.path.join('debug', 'mask'))
+            createPreviewMaskImage(mask, maskpos, file, os.path.join('debug', 'mask'))
 
         if not (i % freq == 0):
             continue
