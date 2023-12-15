@@ -221,7 +221,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio), int(warmMaskMin[0] + pixelHeight))
+    rightpad = 20
+    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio - rightpad), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
     laserTopPos = topPos
@@ -307,7 +308,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
 
-    laseroff = laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2
+    laseroff = (laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2) * 1.011 # warp af billed konstant koeff
 
     return fullmask, laseroff - pixelHeight//2
 
@@ -341,7 +342,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             c += 1
 
     laseroffsetavg = laseroffsetsum / 10
-    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(laseroffsetavg))
+    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
     if input('Skal dette ændres? [Y/N] ').lower() != 'y':
         laseroffsetavg = 0
     else:
