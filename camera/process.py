@@ -423,7 +423,7 @@ def addMarginToMask(mask) -> list:
         if row[0] not in heights.keys(): heights[row[0]] = 0
         heights[row[0]] += 1
     
-    minHeight = min(heights.values()) - 30 # minus padding
+    minHeight = min(heights.values()) - 20 # minus padding
     # skal være lige
     minHeight += minHeight % 2
 
