@@ -334,8 +334,9 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     i = 0
     c = 0
     laseroffsetsum = 0 
+    badFramesStartEnd = 100
     while c < maskheapsize:
-        file = files[randint(0,len(files)-1)]
+        file = files[randint(badFramesStartEnd,len(files)-1-badFramesStartEnd)]
         i += 1
         res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
         if res:
