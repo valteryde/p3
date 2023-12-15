@@ -29,5 +29,6 @@ def main():
     # callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')
     fname = 'files/Forsøg 21'
     fname = 'files/Forsøg 30'
+    # fname = 'files/Forsøg 29'
     analyzeFromFolder(fname)
     showImage(fname+'-res')
