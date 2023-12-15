@@ -346,8 +346,6 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     pbar.close()
     laseroffsetavg = laseroffsetsum / 10
-    print('avg:', laseroffsetavg)
-    laseroffsetavg = -6
     print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
     if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
         laseroffsetavg = 0
@@ -415,7 +413,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     mask = addMarginToMask(mask)
 
     print('Laseroff', laseroffsetavg)
-    return mask, (offset[0]-round(laseroffsetavg), offset[1])
+    return mask, (offset[0]+round(laseroffsetavg), offset[1])
 
 
 def addMarginToMask(mask) -> list:
