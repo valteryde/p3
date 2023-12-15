@@ -312,7 +312,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     #laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
     x = laser_y - ((offset[1] - warmMaskMin[0]) + len(mask) // 2)
 
-    #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
+    print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
     return fullmask, x #laser_y - pixelHeight//2 #x
 
 
