@@ -361,7 +361,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             fails = 0
 
             if coeff <= 0.4:
-                if len(mask) > 2:
+                if len(mask) > 0:
                     break
                 else:
                     print('\033[91mDer kunne ikke findes nogle masker\033[0m')
