@@ -191,7 +191,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 10
+    leftLineIndex += 20
 
     ### STEP 4 ###
     # find laser center
@@ -221,7 +221,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    rightpad = 20
+    rightpad = 30
     bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio - rightpad), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
@@ -378,7 +378,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     print('Bruger {} masker ({})'.format(c, len(masks)))
 
     laseroffsetavg = laseroffsetsum / c
-    laseroffsetavg = 0
+    laseroffsetavg = -6
     # print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
     # if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
     #     laseroffsetavg = 0
