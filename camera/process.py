@@ -143,7 +143,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     ### STEP 1 ###
     # get warm spots
-    diff = (maxTemp - minTemp) * 0.75
+    diff = (maxTemp - minTemp) * 0.75 #NOTE VALTER siger det bliver skruet nedfor da maskerne ikke virker på forsøg 31
     mask = isolateValue(data, maxTemp - diff, imarr)
     mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
     saveMask(mask, os.path.join(folder,'mask-1.png'))
@@ -415,7 +415,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
         if row[0] not in heights.keys(): heights[row[0]] = 0
         heights[row[0]] += 1
     
-    minHeight = min(heights.values()) - 30 # minus padding
+    minHeight = min(heights.values()) - 20 # minus padding
     # skal være lige
     minHeight += minHeight % 2
 
