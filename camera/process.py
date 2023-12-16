@@ -417,15 +417,25 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     box = 0
     cmask, offset, _ = maskGetBbox(mask, -1)
     filteroutLineNoise(cmask)
+    saveMask(cmask, 'mask-nonoise.png')
     newmask = [[] for _ in cmask]
     lastMark = None
     lastChange = 0
+    
+    # starter med rød
+    startsWidthMark = 1
+    started = False
+
     for rowNum, row in enumerate(cmask):
         
         mark = row[0]
 
+        if (not started) and (mark != startsWidthMark):
+            mark = lastMark
+
         if mark != lastMark: #change
             box += 1
+            started = True
 
             if lastChange != rowNum:
                 lastChange = rowNum
