@@ -310,7 +310,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     laser_y = laserMaskMin[0] - (warmMaskMin[0] + topLineIndex) + (laserMaskMax[0] - laserMaskMin[0])//2
     #laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
-    x = laser_y - ((offset[1] - warmMaskMin[0]) + len(mask) // 2)
+    x = laser_y - ((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2)
+    print(x,laser_y,((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2))
 
     #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
 
@@ -417,7 +418,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     mask = addMarginToMask(mask)
 
-    print('Laseroff', laseroffsetavg)
+    print('Laseroff', laseroffsetavg, round(laseroffsetavg), (offset[0], offset[1]), (offset[0]+round(laseroffsetavg), offset[1]))
     return mask, (offset[0]+round(laseroffsetavg), offset[1])
 
 
