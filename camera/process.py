@@ -119,15 +119,15 @@ def filteroutLineNoise(mask, negative=0):
 
 
 
-def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4, coeff=0.6):
     try:
-        return __createMaskFromFrame(fpath, shape, folder, fingers)
+        return __createMaskFromFrame(fpath, shape, folder, fingers, coeff)
     except Exception as e:
         pass
 
 TOPBOTTOMPADDING = 5
 LEFTRIGHTPADDING = 5
-def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
     # make folder for debugging
     folder = os.path.join('mask',folder)
     
@@ -143,7 +143,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     ### STEP 1 ###
     # get warm spots
-    diff = (maxTemp - minTemp) * 0.75 #NOTE VALTER siger det bliver skruet nedfor da maskerne ikke virker på forsøg 31
+    diff = (maxTemp - minTemp) * coeff
     mask = isolateValue(data, maxTemp - diff, imarr)
     mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
     saveMask(mask, os.path.join(folder,'mask-1.png'))
@@ -191,8 +191,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 10
-    leftLineIndex += 10
+    leftLineIndex += 20
 
     ### STEP 4 ###
     # find laser center
@@ -222,8 +221,8 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    rightpad = 20
-    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio)-rightpad, int(warmMaskMin[0] + pixelHeight))
+    rightpad = 30
+    bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio - rightpad), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
     laserTopPos = topPos
@@ -309,9 +308,17 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
 
-    laseroff = laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2
+    laser_y = laserMaskMin[0] - (warmMaskMin[0] + topLineIndex) + (laserMaskMax[0] - laserMaskMin[0])//2
+    #laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
+    x = laser_y - ((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2)
+    #print(x,laser_y,((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2))
 
-    return fullmask, laseroff - pixelHeight//2
+    #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
+
+    # virkede fint gemmer foto
+    createPreviewMaskImage(mask, (offset[1],offset[0]), fpath, os.path.join('debug',folder))
+
+    return fullmask, x #laser_y - pixelHeight//2 #x
 
 
 def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None:
@@ -326,34 +333,58 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     # da vi tager 10 forskellige frames og laver masker til alle
     # så burde alt andet gå mega stærkt
     
+    print('Denne process kan tage op til flere minutter')
+
     # create mask
     masks = []
     pbar = tqdm.tqdm(total=maskheapsize, desc="Laver maske")
     i = 0
     c = 0
+    fails = 0
     laseroffsetsum = 0 
+    badFramesStartEnd = 100
+    coeff = 0.7
     while c < maskheapsize:
-        file = files[randint(0,len(files)-1)]
+        file = files[randint(badFramesStartEnd,len(files)-1-badFramesStartEnd)]
         i += 1
-        res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
+        res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)), coeff=coeff)
         if res:
             masks.append(res[0])
             laseroffsetsum += res[1]
             pbar.update()
             c += 1
+            fails = -25
+        else:
+            fails += 1
 
-    laseroffsetavg = laseroffsetsum / 10
-    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(laseroffsetavg))
-    if input('Skal dette ændres? [Y/N] ').lower() != 'y':
-        laseroffsetavg = 0
-    else:
-        print('Dette blive ændret')
+        if fails > 30:
+            coeff -= 0.025
+            print('\033[91mAnvender nu en maske koefficient på {}\033[0m'.format(round(coeff,5)))
+            fails = 0
+
+            if coeff <= 0.4:
+                if len(mask) > 0:
+                    break
+                else:
+                    print('\033[91mDer kunne ikke findes nogle masker\033[0m')
+                    sys.exit()
 
     pbar.close()
 
     # filter masks
     # print('\033[93m','{} Bad frame, results may be inaccurate'.format(len([mask for mask in masks if not mask])), '\033[0m')
     masks = [mask for mask in masks if mask]
+
+    print('Bruger {} masker ({})'.format(c, len(masks)))
+
+    laseroffsetavg = laseroffsetsum / c
+    laseroffsetavg = 0
+    # print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
+    # if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
+    #     laseroffsetavg = 0
+    # else:
+    #     print('Dette blive ændret')
+
 
     # overlay masks
     fmask = [[{0:0} for j in i] for i in masks[0]]
@@ -409,13 +440,20 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     saveMask(mask, 'mask-cato.png')
 
+    mask = addMarginToMask(mask)
+
+    # print('Laseroff', laseroffsetavg, round(laseroffsetavg), (offset[0], offset[1]), (offset[0]+round(laseroffsetavg), offset[1]))
+    return mask, (offset[0]+round(laseroffsetavg), offset[1])
+
+
+def addMarginToMask(mask) -> list:
     # find højder, -> ide: Anders
     heights = {}
     for row in mask:
         if row[0] not in heights.keys(): heights[row[0]] = 0
         heights[row[0]] += 1
     
-    minHeight = min(heights.values()) - 20 # minus padding
+    minHeight = max(min(heights.values()) - 20, 10) # minus padding
     # skal være lige
     minHeight += minHeight % 2
 
@@ -452,7 +490,8 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
         mask[rowNum] = [0 for i in row]
 
     saveMask(mask, 'mask-cato-med-padding.png')
-    return mask, (offset[0]-round(laseroffsetavg), offset[1])
+
+    return mask
 
 
 def getTempFromFrameWithMask(fpath, mask, maskpos):
@@ -467,7 +506,6 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
     data, _, _ = loadASCIIFile(fpath)
     
     temps = {}
-    #img = [[(0,0,0,255) for _ in row] for row in mask]
     for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
         
         temp = {}
@@ -486,8 +524,6 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
         temps[colNum-maskpos[1]] = temp
 
-    #if randint(0,100) == 0:
-    #    Image.fromarray(np.array(img, np.uint8)).save(os.path.join('debug', 'test-mask-overaly.png'))
 
     # calculate average
     beforeTempSpan = []
@@ -604,6 +640,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     saveFreq = freq*1000
     previewFreq = 1000
 
+    #print(maskpos)
     tempspan = [[], []]
     for i, file in enumerate(files):
         pbar.update()
@@ -615,7 +652,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
             sheet = workbook.active
         
         if i % previewFreq == 0:
-            createPreviewMaskImage(mask, maskpos,file, os.path.join('debug', 'mask'))
+            createPreviewMaskImage(mask, maskpos, file, os.path.join('debug', 'mask'))
 
         if not (i % freq == 0):
             continue

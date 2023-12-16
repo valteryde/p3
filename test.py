@@ -1,5 +1,5 @@
 
-from camera import createRegression, showImage
+from camera import createRegression, showImage, analyzeFromFolder
 from kaxe import resetColor
 from camera import callibrateASCII, anders_abs_temp_entry, anders_abs_temp_pre, valter_temp_indre_ydre_graf
 

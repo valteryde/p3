@@ -57,7 +57,7 @@ lastPos = None
 def choiceMask(file, res):
     data = loadFile(file)
     im = Image.fromarray(mapColor(*data))
-    fname = '__guichoice.png'
+    fname = '.__guichoice.png'
     im.save(fname)
 
     maxBoxes = 4
