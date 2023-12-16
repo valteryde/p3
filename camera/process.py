@@ -341,7 +341,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     fails = 0
     laseroffsetsum = 0 
     badFramesStartEnd = 100
-    coeff = 0.6
+    coeff = 0.7
     while c < maskheapsize:
         file = files[randint(badFramesStartEnd,len(files)-1-badFramesStartEnd)]
         i += 1
@@ -356,21 +356,32 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             fails += 1
 
         if fails > 30:
-            coeff -= 0.05
-            print('\033[91mAnvender nu en maske koefficient på {}\033[0m'.format(coeff))
+            coeff -= 0.025
+            print('\033[91mAnvender nu en maske koefficient på {}\033[0m'.format(round(coeff,5)))
             fails = 0
 
+            if coeff <= 0.4:
+                if len(mask) > 2:
+                    break
+                else:
+                    print('\033[91mDer kunne ikke findes nogle masker\033[0m')
+                    sys.exit()
+
     pbar.close()
-    laseroffsetavg = laseroffsetsum / 10
+
+    # filter masks
+    # print('\033[93m','{} Bad frame, results may be inaccurate'.format(len([mask for mask in masks if not mask])), '\033[0m')
+    masks = [mask for mask in masks if mask]
+
+    print('Bruger {} masker ({})'.format(c, len(mask)))
+
+    laseroffsetavg = laseroffsetsum / c
     print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
     if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
         laseroffsetavg = 0
     else:
         print('Dette blive ændret')
 
-    # filter masks
-    # print('\033[93m','{} Bad frame, results may be inaccurate'.format(len([mask for mask in masks if not mask])), '\033[0m')
-    masks = [mask for mask in masks if mask]
 
     # overlay masks
     fmask = [[{0:0} for j in i] for i in masks[0]]
