@@ -119,15 +119,15 @@ def filteroutLineNoise(mask, negative=0):
 
 
 
-def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4, coeff=0.6):
     try:
-        return __createMaskFromFrame(fpath, shape, folder, fingers)
+        return __createMaskFromFrame(fpath, shape, folder, fingers, coeff)
     except Exception as e:
         pass
 
 TOPBOTTOMPADDING = 5
 LEFTRIGHTPADDING = 5
-def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
     # make folder for debugging
     folder = os.path.join('mask',folder)
     
@@ -143,7 +143,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     ### STEP 1 ###
     # get warm spots
-    diff = (maxTemp - minTemp) * 0.75
+    diff = (maxTemp - minTemp) * coeff
     mask = isolateValue(data, maxTemp - diff, imarr)
     mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
     saveMask(mask, os.path.join(folder,'mask-1.png'))
@@ -311,7 +311,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
     laser_y = laserMaskMin[0] - (warmMaskMin[0] + topLineIndex) + (laserMaskMax[0] - laserMaskMin[0])//2
     #laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
     x = laser_y - ((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2)
-    print(x,laser_y,((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2))
+    #print(x,laser_y,((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2))
 
     #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
 
@@ -338,17 +338,27 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     pbar = tqdm.tqdm(total=maskheapsize, desc="Laver maske")
     i = 0
     c = 0
+    fails = 0
     laseroffsetsum = 0 
     badFramesStartEnd = 100
+    coeff = 0.6
     while c < maskheapsize:
         file = files[randint(badFramesStartEnd,len(files)-1-badFramesStartEnd)]
         i += 1
-        res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)))
+        res = createMaskFromFrame(file, fingers=fingers, folder="mask-{}-{}".format(str(c),str(i)), coeff=coeff)
         if res:
             masks.append(res[0])
             laseroffsetsum += res[1]
             pbar.update()
             c += 1
+            fails = 0
+        else:
+            fails += 1
+
+        if fails > 30:
+            coeff -= 0.05
+            print('\033[91mAnvender nu en maske koefficient på {}\033[0m'.format(coeff))
+            fails = 0
 
     pbar.close()
     laseroffsetavg = laseroffsetsum / 10
@@ -616,7 +626,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     saveFreq = freq*1000
     previewFreq = 1000
 
-    print(maskpos)
+    #print(maskpos)
     tempspan = [[], []]
     for i, file in enumerate(files):
         pbar.update()
