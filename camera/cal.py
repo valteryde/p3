@@ -28,8 +28,13 @@ def showImage(path):
     inner = [(i[1],i[2]) for i in data]
     outer = [(i[3],i[0]) for i in data]
     #data = [*inner, *outer]
-
-    pl = plot.Plot()
+    interval = input('ønskes der aksegrænser? [y/n] ')
+    if interval == 'y':
+        nedre = int(input('nedre grænse: '))
+        øvre = int(input('øvre grænse: '))
+        pl = plot.Plot(None,None,nedre, øvre)
+    else:
+        pl = plot.Plot()  
     pl.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     pl.title(first='Blank overflade', second='Malet overflades')
 
