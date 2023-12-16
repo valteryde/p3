@@ -378,7 +378,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     print('Bruger {} masker ({})'.format(c, len(masks)))
 
     laseroffsetavg = laseroffsetsum / c
-    laseroffsetavg = -6
+    laseroffsetavg = 0
     # print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
     # if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
     #     laseroffsetavg = 0
