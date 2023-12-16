@@ -351,7 +351,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
             laseroffsetsum += res[1]
             pbar.update()
             c += 1
-            fails = 0
+            fails = -25
         else:
             fails += 1
 
