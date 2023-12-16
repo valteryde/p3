@@ -27,16 +27,21 @@ def showImage(path):
 
     inner = [(i[1],i[2]) for i in data]
     outer = [(i[3],i[0]) for i in data]
-    data = [*inner, *outer]
+    #data = [*inner, *outer]
 
     # pl = plot.Plot([0,400,0,500])
     pl = plot.Plot()
     pl.title(first='Blank overflade', second='Malet overflade')
 
-    x = [i[0] for i in data]
-    y = [i[1] for i in data]
-    p = objects.Points(x,y, size=15).legend('Målt')
-    pl.add(p)
+    x0 = [i[0] for i in inner]
+    y0 = [i[1] for i in inner]
+    p0 = objects.Points(x0,y0, size=15).legend('Indre')
+    pl.add(p0)
+
+    x1 = [i[0] for i in outer]
+    y1 = [i[1] for i in outer]
+    p1 = objects.Points(x1,y1, size=15).legend('Ydre')
+    pl.add(p1)
 
     #minmaxy = [y[i] for i in range(len(y))]
 
@@ -48,6 +53,7 @@ def showImage(path):
     #os.remove('.__prereg.png')
     im.show()
     im.close()
+    return '.__prereg.png'
 
 
 def createRegression(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}'):

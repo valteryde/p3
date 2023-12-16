@@ -1,7 +1,8 @@
 
-from camera import createRegression, showImage
+from camera import createRegression, showImage, analyzeFromFolder
 from kaxe import resetColor
 from camera import callibrateASCII
+import os
 
 # def main():
 #     # convertFolder('files/data-2')
@@ -24,5 +25,11 @@ def main():
     #     BOLD = '\033[1m'
     #     UNDERLINE = '\033[4m'
     
-    createRegression('files/Forsøg 13-res')
-    callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')
+    # createRegression('files/Forsøg 13-res')
+    # callibrateASCII('files/Forsøg 13', 'files/Forsøg 13-res/func.cal')
+    fname = 'files/Forsøg 21'
+    # fname = 'files/forsøg'
+    # fname = 'files/Forsøg 30'
+    # fname = 'files/Forsøg 29'
+    analyzeFromFolder(fname)
+    showImage(fname+'-res')
