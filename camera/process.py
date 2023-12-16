@@ -191,7 +191,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 10
+    leftLineIndex += 20
 
     ### STEP 4 ###
     # find laser center
@@ -221,7 +221,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    rightpad = 20
+    rightpad = 30
     bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio - rightpad), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))
@@ -333,6 +333,8 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     # da vi tager 10 forskellige frames og laver masker til alle
     # så burde alt andet gå mega stærkt
     
+    print('Denne process kan tage op til flere minutter')
+
     # create mask
     masks = []
     pbar = tqdm.tqdm(total=maskheapsize, desc="Laver maske")
@@ -376,11 +378,12 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     print('Bruger {} masker ({})'.format(c, len(masks)))
 
     laseroffsetavg = laseroffsetsum / c
-    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
-    if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
-        laseroffsetavg = 0
-    else:
-        print('Dette blive ændret')
+    laseroffsetavg = 0
+    # print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
+    # if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
+    #     laseroffsetavg = 0
+    # else:
+    #     print('Dette blive ændret')
 
 
     # overlay masks
@@ -449,7 +452,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
 
     mask = addMarginToMask(mask)
 
-    print('Laseroff', laseroffsetavg, round(laseroffsetavg), (offset[0], offset[1]), (offset[0]+round(laseroffsetavg), offset[1]))
+    # print('Laseroff', laseroffsetavg, round(laseroffsetavg), (offset[0], offset[1]), (offset[0]+round(laseroffsetavg), offset[1]))
     return mask, (offset[0]+round(laseroffsetavg), offset[1])
 
 
@@ -460,7 +463,7 @@ def addMarginToMask(mask) -> list:
         if row[0] not in heights.keys(): heights[row[0]] = 0
         heights[row[0]] += 1
     
-    minHeight = min(heights.values()) - 20 # minus padding
+    minHeight = max(min(heights.values()) - 20, 10) # minus padding
     # skal være lige
     minHeight += minHeight % 2
 
