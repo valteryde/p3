@@ -118,80 +118,21 @@ def filteroutLineNoise(mask, negative=0):
     return mask
 
 
+def getFingersFullMask(mask,
+                data,
+                minTemp, 
+                maxTemp, 
+                imarr, 
+                leftLineIndex,
+                topLineIndex, 
+                shape, 
+                folder, 
+                fingers,
+                warmMaskMin,
+                pixelHeight,
+                startSize,
 
-def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
-    try:
-        return __createMaskFromFrame(fpath, shape, folder, fingers)
-    except Exception as e:
-        pass
-
-TOPBOTTOMPADDING = 5
-LEFTRIGHTPADDING = 5
-def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
-    # make folder for debugging
-    folder = os.path.join('mask',folder)
-    
-    try:
-        os.mkdir(os.path.join('debug',folder))
-    except FileExistsError:
-        pass
-
-    data, minTemp, maxTemp = loadASCIIFile(fpath)
-    startSize = (len(data[0]),len(data))
-    imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
-
-
-    ### STEP 1 ###
-    # get warm spots
-    diff = (maxTemp - minTemp) * 0.75
-    mask = isolateValue(data, maxTemp - diff, imarr)
-    mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
-    saveMask(mask, os.path.join(folder,'mask-1.png'))
-
-    ### STEP 2 ###
-    # find bottom and top line if is in threadshold of average line length times coeffecient
-    lineLengths = []
-    for row in mask:
-        line = [i for i in row if i]
-        lineLength = len(line)
-        if lineLength > 5: #filter out dead pixels
-            lineLengths.append(lineLength)
-
-    avgLineWidth = sum(lineLengths) / len(lineLengths)
-    acceptLineCoeff = 1.25
-
-    topLineIndex = inf
-    bottomLineIndex = 0
-    for i, line in enumerate(lineLengths):
-            
-        if line*acceptLineCoeff < avgLineWidth:
-            topLineIndex = min(i, topLineIndex)
-            bottomLineIndex = max(i, bottomLineIndex)
-
-    # get height off mask
-    pixelHeight = bottomLineIndex - topLineIndex
-        
-
-    ### STEP 3 ###    
-    # get left most line
-    lineLengths = []
-    for colNum in range(len(mask[0])):
-        line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
-        lineLength = len(line)
-        if lineLength > 5: #filter out dead pixels
-            lineLengths.append(lineLength)
-
-    avgLineWidth = sum(lineLengths) / len(lineLengths)
-    acceptLineCoeff = 1
-
-    leftLineIndex = inf
-    for i, line in enumerate(lineLengths):
-            
-        if line*acceptLineCoeff < avgLineWidth:
-            leftLineIndex = min(i, topLineIndex)
-        
-    # add
-    leftLineIndex += 10
+    ):
 
     ### STEP 4 ###
     # find laser center
@@ -306,12 +247,94 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
 
     saveMask(fullmask, os.path.join(folder,'mask-full.png'))
 
-    #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
-
     laser_y = laserMaskMin[0] - (warmMaskMin[0] + topLineIndex) + (laserMaskMax[0] - laserMaskMin[0])//2
     #laseroff = ((laserMaskMax[1] - laserTopPos[1] + (laserMaskMax[1] - laserMaskMin[1])//2)) * 1.011 # warp af billed konstant koeff
     x = laser_y - ((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2)
     print(x,laser_y,((offset[1] - (warmMaskMin[0] + topLineIndex)) + len(mask) // 2))
+
+    return fullmask, x, offset
+
+
+
+
+def createMaskFromFrame(fpath, shape:tuple=(100,50), folder:str="debug", fingers:str=4):
+    try:
+        return __createMaskFromFrame(fpath, shape, folder, fingers)
+    except Exception as e:
+        pass
+
+TOPBOTTOMPADDING = 5
+LEFTRIGHTPADDING = 5
+def __createMaskFromFrame(fpath, shape:tuple, folder, fingers):
+    # make folder for debugging
+    folder = os.path.join('mask',folder)
+    
+    try:
+        os.mkdir(os.path.join('debug',folder))
+    except FileExistsError:
+        pass
+
+    data, minTemp, maxTemp = loadASCIIFile(fpath)
+    startSize = (len(data[0]),len(data))
+    imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
+
+
+    ### STEP 1 ###
+    # get warm spots
+    diff = (maxTemp - minTemp) * 0.75
+    mask = isolateValue(data, maxTemp - diff, imarr)
+    mask, warmMaskMin, warmMaskMax = maskGetBbox(mask) #+ cropping
+    saveMask(mask, os.path.join(folder,'mask-1.png'))
+
+    ### STEP 2 ###
+    # find bottom and top line if is in threadshold of average line length times coeffecient
+    lineLengths = []
+    for row in mask:
+        line = [i for i in row if i]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
+
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1.25
+
+    topLineIndex = inf
+    bottomLineIndex = 0
+    for i, line in enumerate(lineLengths):
+            
+        if line*acceptLineCoeff < avgLineWidth:
+            topLineIndex = min(i, topLineIndex)
+            bottomLineIndex = max(i, bottomLineIndex)
+
+    # get height off mask
+    pixelHeight = bottomLineIndex - topLineIndex
+
+    ### STEP 3 ###    
+    # get left most line
+    lineLengths = []
+    for colNum in range(len(mask[0])):
+        line = [1 for rowNum in range(len(mask)) if mask[rowNum][colNum]]
+        lineLength = len(line)
+        if lineLength > 5: #filter out dead pixels
+            lineLengths.append(lineLength)
+
+    avgLineWidth = sum(lineLengths) / len(lineLengths)
+    acceptLineCoeff = 1
+
+    leftLineIndex = inf
+    for i, line in enumerate(lineLengths):
+            
+        if line*acceptLineCoeff < avgLineWidth:
+            leftLineIndex = min(i, topLineIndex)
+        
+    # add
+    leftLineIndex += 10
+
+    fullmask, x, offset = getFingersFullMask(
+        mask, data, minTemp, maxTemp, imarr, leftLineIndex, topLineIndex, shape, folder, fingers, warmMaskMin, pixelHeight, startSize
+    )
+    
+    #print(laserMaskMin[1] + (laserMaskMax[1] - laserMaskMin[1])//2, pixelHeight//2)
 
     #print(x, laser_y - pixelHeight//2,(offset[1] - warmMaskMin[0]))
 
@@ -419,6 +442,7 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     mask = addMarginToMask(mask)
 
     print('Laseroff', laseroffsetavg, round(laseroffsetavg), (offset[0], offset[1]), (offset[0]+round(laseroffsetavg), offset[1]))
+    laseroffsetavg = 3
     return mask, (offset[0]+round(laseroffsetavg), offset[1])
 
 
@@ -714,9 +738,12 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
             min(xborder[1], x2),
         )
 
+
     saveMask(mask, 'mask-test-manual.png')
     mask = [[val for val in row[xborder[0]:xborder[1]]] for row in mask[yborder[0]:yborder[1]]]
     saveMask(mask, 'mask-test-manual-crop.png')
+    # mask = addMarginToMask(mask)
+    # saveMask(mask, 'mask-test-anders.png')
     maskpos = yborder[0], xborder[0]
 
     outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
@@ -727,6 +754,7 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
 
 def analyzeFromFolderManual(fpath:str, baseoutputfolder:str="files") -> list:
     # mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+    createFolder(os.path.join('debug','mask'))
     files = getSortedFolder(os.path.join(fpath, '*.asc'))
 
     start_new_thread(analyzeFromFolderHeavyWork, (files,baseoutputfolder, fpath))
@@ -749,3 +777,86 @@ def dumpTempSpanToFile(tempspan):
 
     f = open(os.path.join('debug', 'tempspan-after.txt'), 'w')
     f.write('\n'.join(map(str, tempspan[1])))
+
+# semi
+def analyzeFromFolderSemi(fpath:str, baseoutputfolder:str="files") -> list:
+    # mask, maskpos = createAndOverlayMasks(fpath, fingers, maskheapsize)
+    createFolder(os.path.join('debug','mask'))
+    files = getSortedFolder(os.path.join(fpath, '*.asc'))
+
+    start_new_thread(analyzeFromFolderSemiHeavyWork, (files,baseoutputfolder, fpath))
+
+    choiceMask(files[randint(0,len(files)-1)], global_mask, 1)
+
+
+def analyzeFromFolderSemiHeavyWork(files, baseoutputfolder, fpath):
+    
+    while not global_mask[0]:
+        time.sleep(1)
+        pass
+    
+    if global_mask[0] == -1:
+        return
+
+    data, minTemp, maxTemp = loadFile(files[0])
+    mask = [[0 for _ in row] for row in data]
+
+    # create mask
+    box = global_mask[0][0]
+
+    # for i,box in enumerate(boxes):
+    #     x1 = min(box.x, box.x+box.width)
+    #     x2 = max(box.x, box.x+box.width)
+    #     y1 = min(len(mask)-box.y, len(mask)-box.y-box.height) #pyglet coord -> pixel coord
+    #     y2 = max(len(mask)-box.y, len(mask)-box.y-box.height)
+
+    #     drawBox(mask, x1, y1, x2-x1, y2-y1, i+1)
+
+    #     yborder = (
+    #         min(yborder[0], y1, y2),
+    #         max(yborder[1], y1, y2),
+    #     )
+
+    #     xborder = (
+    #         max(xborder[0], x1),
+    #         min(xborder[1], x2),
+    #     )
+
+    x1 = min(box.x, box.x+box.width)
+    x2 = max(box.x, box.x+box.width)
+    y1 = min(len(mask)-box.y, len(mask)-box.y-box.height) #pyglet coord -> pixel coord
+    y2 = max(len(mask)-box.y, len(mask)-box.y-box.height)
+
+    mask = [[val for val in row[x1:x2]] for row in mask[y1:y2]]
+    imarr = [[WHITE for _ in range(len(data[0]))] for _ in range(len(data))]
+
+    maskpos = x1, y1
+    fullmask, x, offset = getFingersFullMask(
+        mask, 
+        data, 
+        minTemp, 
+        maxTemp, 
+        imarr, 
+        0, 
+        0,
+        (100,50), 
+        'mask', 
+        4, 
+        maskpos, 
+        y2-y1, 
+        [len(data),len(data[0])]
+    )
+
+    mask, offset, (r2, c2) = maskGetBbox(fullmask, 0)
+
+    saveMask(mask, 'mask-test-manual.png')
+    
+    saveMask(mask, 'mask-test-manual-crop.png')
+    # mask = addMarginToMask(mask)
+    # saveMask(mask, 'mask-test-anders.png')
+    
+
+    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+    retrieveTempFromFiles(files, mask, offset, outputfolder)
+    
+    pg.app.exit()

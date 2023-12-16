@@ -54,13 +54,12 @@ class Box:
 
 
 lastPos = None
-def choiceMask(file, res):
+def choiceMask(file, res, maxBoxes=4):
     data = loadFile(file)
     im = Image.fromarray(mapColor(*data))
     fname = '.__guichoice.png'
     im.save(fname)
 
-    maxBoxes = 4
     window = pg.window.Window(im.width, im.height)
     window.set_caption('Vælg {} områder'.format(maxBoxes))
 
@@ -115,3 +114,4 @@ def choiceMask(file, res):
         res[0] = -1
 
     pg.app.run()
+
