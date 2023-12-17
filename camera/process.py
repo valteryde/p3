@@ -191,7 +191,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
             leftLineIndex = min(i, topLineIndex)
         
     # add
-    leftLineIndex += 20
+    leftLineIndex += 30
 
     ### STEP 4 ###
     # find laser center
@@ -221,7 +221,7 @@ def __createMaskFromFrame(fpath, shape:tuple, folder, fingers, coeff=0.6):
     # assume length 
     ratio = shape[0] / shape[1] * 1.07 #times warp
     topPos = (warmMaskMin[1]+leftLineIndex, warmMaskMin[0])
-    rightpad = 30
+    rightpad = 40
     bottomPos = (int(warmMaskMin[1]+ pixelHeight * ratio - rightpad), int(warmMaskMin[0] + pixelHeight))
     
     im = Image.fromarray(np.array(imarr, np.uint8))

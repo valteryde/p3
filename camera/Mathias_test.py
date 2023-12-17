@@ -231,7 +231,13 @@ def anders_abs_temp_pre(path):
     outer = [(i[3],i[0]) for i in data]
     data = [*inner, *outer]
 
-    pl = plot.Plot()
+    interval = [None,None]
+    if input('Hvilket aksegrænser ønskes der i plottet? [Y/N]: ').lower() == 'y':
+        a = int(input('Nedre grænse:'))
+        b = int(input('Øvre grænse:'))
+        interval = [a,b]
+
+    pl = plot.Plot([None,None,*interval])
     pl.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     pl.title(first='Blank overflade', second='Malet overflades afvigelse')
 
@@ -263,14 +269,15 @@ def anders_abs_temp_pre(path):
     #print(ny)
 
     p0 = objects.Points(x0, y0, size=10, color=(242,196,58,255)).legend('Målt')
-    p = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit')
+    p = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit - samlet gennemsnit: {}'.format(np.average(y0).round(3)))
     pl.add(p0)
     pl.add(p)
 
-    #minmaxy = [y[i] for i in range(len(y))]
+    minmaxy = [y0[i] for i in range(len(y0))]
 
-    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
-    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+    pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
+    pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+    #pl.add(objects.Points([0],[np.average(y0)], size=10).legend('Gnm: {}'.format(np.average(y0).round(3))))
 
     outputfile = os.path.join(path, os.path.split(path)[-1]+'-anders_pre.png')
     print(outputfile)
@@ -342,11 +349,6 @@ def anders_abs_temp_post(path):
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
-    if input('Hvilket interval ønskes der indenfor plottet? [Y/N]: ').lower() == 'y':
-        a = int(input('Nedre grænse:'))
-        b = int(input('Øvre grænse:'))
-        interval = [a,b]
-
     inner = [(i[1],i[2]) for i in data]
     outer = [(i[3],i[0]) for i in data]
     data = [*inner, *outer]
@@ -379,14 +381,15 @@ def anders_abs_temp_post(path):
     #print(ny)
 
     p0 = objects.Points(x0, y0, size=10, color=(242,196,58,255)).legend('Målt')
-    p = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit')
+    p = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit - samlet gennemsnit: {}'.format(np.average(y0).round(3)))
     pl.add(p0)
     pl.add(p)
 
-    #minmaxy = [y[i] for i in range(len(y))]
+    minmaxy = [y0[i] for i in range(len(y0))]
 
-    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
-    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+    pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
+    pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+    #pl.add(objects.Points([0],[np.average(y0)], size=0).legend('Gnm: {}'.format(np.average(y0).round(3))))
 
     outputfile = os.path.join(path, os.path.split(path)[-1]+'-anders_post.png')
     print(outputfile)
@@ -410,7 +413,7 @@ def compareCallibratedExcelMT(path, calfuncname):
     print('Henter data')
     plt = plot.Plot([None, None, *interval])
     plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
-    plt.title(first='Kalibreret blank overflade', second='Malet overflades afvigelse')
+    plt.title(first='Kalibreret blank overflade', second='Malet overflades absolut afvigelse')
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
     data = []
@@ -442,34 +445,61 @@ def compareCallibratedExcelMT(path, calfuncname):
     bx = [cdata[i][1] for i in range(len(data))]
     by = [data[i][2] for i in range(len(data))]
     
-    x = [*ax, *bx]
-    y = [*ay, *by]
+    x0 = [*ax, *bx]
+    y0 = [*ay, *by]
 
-    y = [y[i]-x[i] for i in range(len(y))]
+    y0 = [abs(y0[i]-x0[i]) for i in range(len(y0))]
+
+    xy0 = [(i[0], i[1]) for i in zip(x0, y0) if interval[0] <= i[1] <= interval[1]]
+    x0 = [i[0] for i in xy0]
+    y0 = [i[1] for i in xy0]
+    print('Gnm: {}'.format(np.average(y0)))
 
     if interval[0] and interval[1]:
-        minmaxy = [i for i in y if interval[0] < i < interval[1]]
+        minmaxy = [i for i in y0 if interval[0] < i < interval[1]]
     else:
-        minmaxy = y
+        minmaxy = y0
+
+    stepsize = 5
+    mnx = min(x0)
+    span = (max(x0)-mnx)
+    nx = [[] for _ in range(int(span//stepsize))]
+    ny = [[] for _ in range(int(span//stepsize))]
+    
+    for ix, x in enumerate(x0):
+
+        i = math.floor((x-mnx) / stepsize)-1
+        nx[i].append(x)
+        ny[i].append(y0[ix])
+    
+    nxy = [(i[0], i[1]) for i in zip(nx, ny) if i[0] and i[1]]
+    nx = [i[0] for i in nxy]
+    ny = [i[1] for i in nxy]
+
+    nx = [float(np.average(i)) for i in nx]
+    ny = [float(np.average(i)) for i in ny]
+    p = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit - samlet gennemsnit: {}'.format(np.average(y0).round(3)))
 
     funcmax = objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3)))
     funcmin = objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3)))
     
-    #plt.add(funcmax)
-    #plt.add(funcmin)
 
+    plt.add(funcmax)
+    plt.add(funcmin)
+    #plt.add(objects.Points([0],[np.average(y0)], size=0).legend('Gnm: {}'.format(np.average(y0).round(3))))
     # plot
-    reg = regression(lambda x,a,b: a*x+b, x,y)
+    reg = regression(lambda x,a,b: a*x+b, x0,y0)
     a,b = reg[0]
 
    #func = objects.Function(lambda x,a,b: a*x+b, a=a, b=b).legend('Reg: a={}, b={}, r^2={}'.format(a,b,rsquared(x,y,lambda x: a*x+b)))
-    points = objects.Points(x,y, size=15,color=(242,196,58,255))
+    points = objects.Points(x0,y0, size=15,color=(242,196,58,255))
 
     
     plt.add(points)
+    plt.add(p)
     #plt.add(func)
 
-    outputfile = os.path.join(path, calfuncname.replace('-res','') +'-compare-'+os.path.split(path)[-1].replace('-res','')+'.png')
+    outputfile = os.path.join(path, calfuncname.replace('-res','') +'-compare-'+os.path.split(path)[-1].replace('-res','')+'ABS.png')
     plt.save(outputfile)
     im = Image.open(outputfile)
     im.show()
