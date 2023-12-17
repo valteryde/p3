@@ -1,5 +1,7 @@
 
 from prepare import setupAndInstall, uninstallPackages
+import sys
+import os
 
 try:
     from interface import selectionWindow, displayData
@@ -12,10 +14,8 @@ try:
     from test import main as test
     from _thread import start_new_thread
     import datetime
-    import os
     import logging
     import platform
-    import sys
     import math
     import psutil
     from kaxe import resetColor
