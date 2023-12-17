@@ -27,7 +27,7 @@ def makeHist(data, fname):
     a2, b2 = np.histogram(data[1], bins, density=True)
     
     plt = Plot([None, None, 0, None])
-    plt.title(first='Temperatur', second='Frekvens')
+    plt.title(first='Temperatur forskel i en kolonne', second='Frekvens')
 
     p1 = objects.Points(b1, a1, connect=True).legend('Før')
     p2 = objects.Points(b2, a2, connect=True).legend('Efter')
@@ -35,11 +35,12 @@ def makeHist(data, fname):
     plt.add(p1)
     plt.add(p2)
 
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     plt.save(os.path.join('debug','hist.png'))
     
     # cum
     plt = Plot([None, None, 0, 1])
-    plt.title(first='Temperatur', second='Kumuleret frekvens')
+    plt.title(first='Temperatur forskel i en kolonne', second='Kumuleret frekvens')
 
     p1 = objects.Points(b1, cum(a1), connect=True).legend('Før')
     p2 = objects.Points(b2, cum(a2), connect=True).legend('Efter')
@@ -47,4 +48,5 @@ def makeHist(data, fname):
     plt.add(p1)
     plt.add(p2)
 
+    plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     plt.save(os.path.join('debug','cum-hist.png')) 
