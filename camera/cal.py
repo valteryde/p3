@@ -32,7 +32,7 @@ def showImage(path):
     if interval == 'y':
         nedre = int(input('nedre grænse: '))
         øvre = int(input('øvre grænse: '))
-        pl = plot.Plot(None,None,nedre, øvre)
+        pl = plot.Plot([None,None,nedre, øvre])
     else:
         pl = plot.Plot()  
     pl.style(windowHeight=2000,windowWidth=2000,fontSize=80)
@@ -40,12 +40,12 @@ def showImage(path):
 
     x0 = [i[0] for i in inner]
     y0 = [i[1] for i in inner]
-    p0 = objects.Points(x0,y0, size=15).legend('Indre')
+    p0 = objects.Points(x0,y0, size=15, color=(235,198,86,255)).legend('Indre')
     pl.add(p0)
 
     x1 = [i[0] for i in outer]
     y1 = [i[1] for i in outer]
-    p1 = objects.Points(x1,y1, size=15).legend('Ydre')
+    p1 = objects.Points(x1,y1, size=15, color=(183,38,62,255)).legend('Ydre')
     pl.add(p1)
 
     #minmaxy = [y[i] for i in range(len(y))]

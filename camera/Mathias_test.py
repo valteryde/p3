@@ -56,7 +56,14 @@ def showImageMT(path): #regression ligning
     outer = [(i[3],i[0]-i[3]) for i in data]
     data = [*inner, *outer]
 
-    pl = plot.Plot()
+    interval = input('ønskes der aksegrænse?[y/n] ')
+    if interval == 'y':
+        nedre = int(input('nedre grænse: '))
+        øvre = int(input('øvre grænse: '))
+        pl = plot.Plot([None,None,nedre,øvre])
+    else:
+        pl = plot.Plot()
+
     pl.style(windowHeight=2000,windowWidth=2000,fontSize=80)
     pl.title(first='Blank overflade', second='Malet overflades')
 
@@ -124,7 +131,14 @@ def createRegressionMT(path, regtype=lambda x,a,b: a*x+b, regtypelabel='{}x+{}')
     for file in xlsx:
         data.extend(loadExcel(file, 'Sheet', (1,1), (4,-1)))
 
-    plt = plot.Plot()
+    interval = input('ønskes der aksegrænse?[y/n] ')
+    if interval == 'y':
+        nedre = int(input('nedre grænse: '))
+        øvre = int(input('øvre grænse: '))
+        plt = plot.Plot([None,None,nedre,øvre])
+    else:
+        plt = plot.Plot()
+
     plt.title(first='Blank overflade', second='Malet overflade')
     
     inner = [(i[1],i[2]) for i in data if not any(map(lambda x: x is None, i))]
