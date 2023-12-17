@@ -1,22 +1,27 @@
 
-from interface import selectionWindow, displayData
-from interface import selectWrapper as wrapper
-from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
-from camera import analyzeFromFolder, createRegression, showImage
-from camera import convertFolder, analyzeFromFolderManual
-from camera import callibrateASCII, callibrateExcel
-from camera import createFolder, callibrateExcelAndShow
-from test import main as test
-from _thread import start_new_thread
-import datetime
-import os
-import logging
-import platform
-import sys
-import math
-import psutil
-from kaxe import resetColor
-# from .install import 
+from prepare import setupAndInstall, uninstallPackages
+
+try:
+    from interface import selectionWindow, displayData
+    from interface import selectWrapper as wrapper
+    from thermocouple import GLOBALVARS, serial_ports, handleCommunication, getNow
+    from camera import analyzeFromFolder, createRegression, showImage
+    from camera import convertFolder, analyzeFromFolderManual
+    from camera import callibrateASCII, callibrateExcel
+    from camera import createFolder, callibrateExcelAndShow
+    from test import main as test
+    from _thread import start_new_thread
+    import datetime
+    import os
+    import logging
+    import platform
+    import sys
+    import math
+    import psutil
+    from kaxe import resetColor
+    # from .install import 
+except ImportError:
+    print('\033[92mVelkommen!\033[93m Der mangler nogle/en pakke(r)\033[0m')
 
 REGRESSIONSNAMES = ["Lineær", "2. poly", "3. poly", "4. poly", "5. poly"]
 REGRESSIONS = [
@@ -328,8 +333,12 @@ def openFilesFolder():
 if __name__ == '__main__':
     # init
     if len(sys.argv) >= 2 and sys.argv[1] == "init":
-        os.mkdir('files')
-        os.mkdir('debug')
+        setupAndInstall()
+        sys.exit()
+
+    if len(sys.argv) >= 2 and sys.argv[1] == "uninstall":
+        uninstallPackages()
+        sys.exit()
 
     # test
     if len(sys.argv) >= 2 and sys.argv[1] == "test":
