@@ -285,9 +285,9 @@ def camera():
             "Omdan til png",
             "Aflæs temperature",
             "Aflæs temperature [Manualt]",
-            "Dan kallibreringskurve på data [Manuelt]",
+            "Dan kallibreringskurve på aflæst data",
             "Kallibrer datasæt [ASCII]",
-            "Kallibrer allerede aflæst datasæt [excel]",
+            "Kallibrer allerede aflæst datasæt [XLSX]",
         ])
 
     if choice[0] == 0:
