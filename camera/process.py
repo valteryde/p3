@@ -537,50 +537,29 @@ def __getTempFromFrameWithMask(fpath, mask, maskpos):
 
     # calculate average
     beforeTempSpan = []
-    for key in temps:
-        
-        for i in temps[key]: #maske identifikationer
-            if i != 0: beforeTempSpan.append(max(temps[key][i][2]) - min(temps[key][i][2]))
-            temps[key][i] = temps[key][i][1] / temps[key][i][0]
-
-    # gør det igen jf. filtrerings algoritmen
-    span = [-50, 50]
-    res = {}
-    for colNum in range(maskpos[1], len(mask[0])+maskpos[1]):
-        
-        temp = {}
-        
-        for rowNum in range(maskpos[0], len(mask)+maskpos[0]):
-            
-            i = colNum-maskpos[1]
-            mark = mask[rowNum-maskpos[0]][i]
-            
-            if mark not in temp.keys(): temp[mark] = [0,0, []]
-
-            # filter
-            if not (temps[i][mark] + span[0] < data[rowNum][colNum] < temps[i][mark] + span[1]):
-                continue
-
-            temp[mark][0] += 1
-            temp[mark][1] += data[rowNum][colNum]
-            temp[mark][2].append(data[rowNum][colNum])
-
-        res[i] = temp
-
-    # average igen igen
     afterTempSpan = []
-    for key in res:
-        
-        for i in res[key]:
+    res = {}
+    for key in temps:
+        if key not in res.keys():
+            res[key] = {}
+
+        for i in temps[key]: #maske identifikationer
+            span = max(temps[key][i][2]) - min(temps[key][i][2])
+            if i != 0: beforeTempSpan.append(span)
             
-            if res[key][i][0] == 0:
-                res[key][i] = 0
+            if span > 8:
+                afterTempSpan.append(span)
                 continue
+            res[key][i] = temps[key][i][1] / temps[key][i][0]
+        
+    # filter
+    temps = {}
+    for key in res:
+        if all(res[key]):
+            temps[key] = res[key]
 
-            if i != 0: afterTempSpan.append(max(res[key][i][2]) - min(res[key][i][2]))
-            res[key][i] = res[key][i][1] / res[key][i][0]
+    return temps, beforeTempSpan, afterTempSpan
 
-    return res, beforeTempSpan, afterTempSpan
 
 def rule(ts) -> list:
     res = []
