@@ -20,6 +20,11 @@ try:
     import psutil
     from kaxe import resetColor
 except ImportError:
+    
+    if len(sys.argv) >= 2 and sys.argv[1] == "uninstall":
+        uninstallPackages()
+        sys.exit()
+
     print('\033[92mVelkommen!\033[93m Der mangler nogle/en pakke(r)\033[0m')
     setupAndInstall()
     sys.exit()
