@@ -17,7 +17,7 @@ packages = {
     "sympy"
 }
 
-macpackages = {}
+# macpackages = {}
 
 windowpackages = {
     "windows-curses",
@@ -46,19 +46,14 @@ def setupAndInstall():
         for package in windowpackages:
             install(package)
 
-    if platform.system().lower() == 'darwin':
-        for package in macpackages:
-            install(package)
+    # if platform.system().lower() == 'darwin':
+    #     for package in macpackages:
+    #         install(package)
 
 
 def uninstallPackages():
     for package in packages:
         uninstall(package)
     
-    if platform.system().lower() == 'windows':
-        for package in windowpackages:
-            uninstall(package)
-
-    if platform.system().lower() == 'darwin':
-        for package in macpackages:
-            uninstall(package)
+    # jeg kan ikke få lov til at slette windows-curses
+    # tja

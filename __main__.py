@@ -21,6 +21,8 @@ try:
     from kaxe import resetColor
 except ImportError:
     print('\033[92mVelkommen!\033[93m Der mangler nogle/en pakke(r)\033[0m')
+    setupAndInstall()
+    sys.exit()
 
 REGRESSIONSNAMES = ["Lineær", "2. poly", "3. poly", "4. poly", "5. poly"]
 REGRESSIONS = [
