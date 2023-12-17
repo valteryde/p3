@@ -1,7 +1,9 @@
 
-from prepare import setupAndInstall, uninstallPackages
+from prepare import setupAndInstall, uninstallPackages, createFolders
 import sys
 import os
+
+createFolders()
 
 try:
     from interface import selectionWindow, displayData
@@ -20,7 +22,7 @@ try:
     import psutil
     from kaxe import resetColor
 except ImportError:
-    
+
     if len(sys.argv) >= 2 and sys.argv[1] == "uninstall":
         uninstallPackages()
         sys.exit()

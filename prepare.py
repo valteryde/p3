@@ -35,9 +35,12 @@ def uninstall(package):
     except Exception as e:
         print('[ERROR]',e)
 
-def setupAndInstall():
+def createFolders():
     if not os.path.exists('files'): os.mkdir('files')
     if not os.path.exists('debug'): os.mkdir('debug')
+
+def setupAndInstall():
+    createFolders() #for sikkerheds skyld
 
     print('Der installers nu nogle pakker som programmet bruger')
     print('Disse kan altid afinstalleres med ')
