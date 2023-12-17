@@ -19,7 +19,6 @@ try:
     import math
     import psutil
     from kaxe import resetColor
-    # from .install import 
 except ImportError:
     print('\033[92mVelkommen!\033[93m Der mangler nogle/en pakke(r)\033[0m')
 
