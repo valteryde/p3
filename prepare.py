@@ -24,10 +24,16 @@ windowpackages = {
 }
 
 def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    except Exception as e:
+        print('[ERROR]',e)
 
 def uninstall(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "uninstall", package])
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "uninstall", package])
+    except Exception as e:
+        print('[ERROR]',e)
 
 def setupAndInstall():
     if not os.path.exists('files'): os.mkdir('files')
