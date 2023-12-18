@@ -152,7 +152,7 @@ def compareCallibratedExcel(path, calfuncname):
     print('Henter data')
     plt = plot.Plot([None, None, *interval])
     plt.style(windowHeight=3000,windowWidth=3000,fontSize=60)
-    plt.title(first='Kalibreret blank overflade', second='Malet overflades afvigelse')
+    plt.title(first='Kalibreret blank overflade', second='Malet overflade')
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
     data = []
