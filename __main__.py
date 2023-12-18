@@ -281,13 +281,13 @@ def camera():
     
     choice = selectionWindow('Termisk kamera',[
             "<-- Gå tilbage",
-            "Dan kalliberingskurve",
+            "Dan kalibreringskurve",
             "Omdan til png",
             "Aflæs temperature",
-            "Aflæs temperature [Manualt]",
-            "Dan kallibreringskurve på aflæst data",
-            "Kallibrer datasæt [ASCII]",
-            "Kallibrer allerede aflæst datasæt [XLSX]",
+            "Aflæs temperature [Manuelt]",
+            "Dan kalibreringskurve på aflæst data",
+            "Kalibrer datasæt [ASCII]",
+            "Kalibrer allerede aflæst datasæt [XLSX]",
         ])
 
     if choice[0] == 0:
