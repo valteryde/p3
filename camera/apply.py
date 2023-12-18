@@ -78,9 +78,8 @@ def callibrateASCII(asciifolder, calfile):
     outputfolder = asciifolder+'-cal'
     createFolder(outputfolder)
     files = glob.glob(os.path.join(asciifolder, '*.asc'))
-
+    freq = int(input('hvor mange frames ønskes? (1 ud af 10 = 10%) 1 ud af '))
     pbar = tqdm.tqdm(total=len(files))
-    freq = int(input('hvor mange frames ønskes? 1 ud af '))
     for i, file in enumerate(files):
         if i % freq != 0: continue
 

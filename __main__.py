@@ -156,7 +156,7 @@ def calibrateData():
 
     files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
     files = [folder.replace('-res', '') for folder in files if 'func.cal' in os.listdir(os.path.join(basepath,folder))]
-    choice = selectionWindow('Vælg kaliberingsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+    choice = selectionWindow('Vælg kalibreringsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
     if choice[0] == 0: 
         return False
@@ -194,7 +194,7 @@ def excelCalibrateData():
 
     files = [i for i in files if i not in [".DS_Store", 'config.json'] and '.' not in i and i[-4:] == '-res']
     files = [folder.replace('-res', '') for folder in files if 'func.cal' in os.listdir(os.path.join(basepath,folder))]
-    choice = selectionWindow('Vælg kaliberingsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
+    choice = selectionWindow('Vælg kalibreringsfunktion',["<-- Gå tilbage", "[Klik her for at åbne mappe]"] + files)
 
     if choice[0] == 0: 
         return False
