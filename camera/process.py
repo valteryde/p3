@@ -14,6 +14,8 @@ import time
 import sys
 import pyglet as pg
 from .hist import makeHist
+import shutil
+from .cal import showImage
 
 WHITE = (255,255,255,255)
 RED = (255,0,0,255)
@@ -378,13 +380,12 @@ def createAndOverlayMasks(fpath:str, fingers:int=4, maskheapsize:int=10) -> None
     print('Bruger {} masker ({})'.format(c, len(masks)))
 
     laseroffsetavg = laseroffsetsum / c
-    laseroffsetavg = 0
-    # print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
-    # if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
-    #     laseroffsetavg = 0
-    # else:
-    #     print('Dette blive ændret')
-
+    #laseroffsetavg = 0
+    print('\033[91mDer ser ud til at laseren er forskudt med {}px \033[0m'.format(round(laseroffsetavg, 3)))
+    if input('Skal maskerene forskydes? [Y/N] ').lower() != 'y':
+        laseroffsetavg = 0
+    else:
+        print('Dette blive ændret')
 
     # overlay masks
     fmask = [[{0:0} for j in i] for i in masks[0]]
@@ -503,10 +504,9 @@ def addMarginToMask(mask) -> list:
 
     return mask
 
-
 def getTempFromFrameWithMask(fpath, mask, maskpos):
     try:
-        return __getTempFromFrameWithMask(fpath, mask, maskpos)
+        return __getTempFromFrameWithMask(fpath, mask, maskpos) # __getTempFromFrameWithMask
     except ImportError as e:
         print('\033[93m','Bad frame, skipping {}'.format(fpath), '\033[0m')
         return False, None, None
@@ -648,7 +648,7 @@ def retrieveTempFromFiles(files, mask, maskpos, outputfolder):
     
     freq = 10
     saveFreq = freq*1000
-    previewFreq = 1000
+    previewFreq = 500
 
     #print(maskpos)
     tempspan = [[], []]
@@ -748,14 +748,23 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
             min(xborder[1], x2),
         )
 
+
     saveMask(mask, 'mask-test-manual.png')
     mask = [[val for val in row[xborder[0]:xborder[1]]] for row in mask[yborder[0]:yborder[1]]]
     saveMask(mask, 'mask-test-manual-crop.png')
     maskpos = yborder[0], xborder[0]
-
-    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
-    retrieveTempFromFiles(files, mask, maskpos, outputfolder)
     
+    outputfolder = os.path.join(baseoutputfolder, os.path.split(fpath)[-1]+'-res')
+    #retrieveTempFromFiles(files, mask, (maskpos[0], maskpos[1]), outputfolder)
+
+    for i in range(5):
+        v = input('tal: ')
+        newoutput = outputfolder+'-'+str(v)
+        createFolder(newoutput)
+        retrieveTempFromFiles(files, mask, (maskpos[0]+int(v), maskpos[1]), newoutput)
+        shutil.copy(os.path.join('debug','mask','irdata_501.png'), os.path.join(newoutput, str(v)+'.png'))
+        shutil.copy(showImage(newoutput), os.path.join(newoutput, 'graf.png'))
+
     pg.app.exit()
 
 
@@ -776,7 +785,7 @@ def dumpTempSpanToFile(tempspan):
     ]
     """
     
-    makeHist(tempspan, 'hist.png')
+    #makeHist(tempspan, 'hist.png')
 
     f = open(os.path.join('debug', 'tempspan-before.txt'), 'w')
     f.write('\n'.join(map(str, tempspan[0])))
