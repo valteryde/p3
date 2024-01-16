@@ -72,15 +72,38 @@ def showImageMT(path): #regression ligning
     p = objects.Points(x,y, size=15,color=(242,196,58,255)).legend('Målt')
     pl.add(p)
 
-    #minmaxy = [y[i] for i in range(len(y))]
+    stepsize = 5
+    mnx = min(x)
+    span = (max(x)-mnx)
+    nx = [[] for _ in range(int(span//stepsize))]
+    ny = [[] for _ in range(int(span//stepsize))]
+    
+    for ix, x in enumerate(x):
 
-    #pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
-    #pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+        i = math.floor((x-mnx) / stepsize)-1
+        nx[i].append(x)
+        ny[i].append(y[ix])
+    
+    nxy = [(i[0], i[1]) for i in zip(nx, ny) if i[0] and i[1]]
+    nx = [i[0] for i in nxy]
+    ny = [i[1] for i in nxy]
+
+    nx = [float(np.average(i)) for i in nx]
+    ny = [float(np.average(i)) for i in ny]
+
+    minmaxy = [y[i] for i in range(len(y))]
+
+    pl.add(objects.Function(lambda x, a: a, a=max(minmaxy)).legend('Max: {}'.format(round(max(minmaxy),3))))
+    pl.add(objects.Function(lambda x, a: a, a=min(minmaxy)).legend('Min: {}'.format(round(min(minmaxy),3))))
+
+    p0 = objects.Points(nx, ny, size=15, color=(0,0,0,255)).legend('Gennemsnit - samlet gennemsnit: {}'.format(np.average(y).round(3)))
+    pl.add(p0)
 
     outputfile = os.path.join(path, os.path.split(path)[-1].replace('-res','')+'.png')
     pl.save(outputfile)
     im = Image.open(outputfile)
     #os.remove('.__prereg.png')
+    im.save(outputfile.replace('.png','') + 'abs.png')
     im.show()
     im.close()
 
@@ -414,6 +437,9 @@ def compareCallibratedExcelMT(path, calfuncname):
     plt = plot.Plot([None, None, *interval])
     plt.style(windowHeight=2000,windowWidth=2000,fontSize=60)
     plt.title(first='Kalibreret blank overflade', second='Malet overflades absolut afvigelse')
+
+    if interval[0] is None:
+        interval = [-math.inf, math.inf]
 
     xlsx = glob.glob(os.path.join(path, 'temperature', '*.xlsx'))
     data = []
