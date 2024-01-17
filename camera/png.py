@@ -85,7 +85,8 @@ def createImage(outputfolderName, fileName, num=-1, filesInResFolder=[], fileLen
 
     data = loadFile(fileName)
     im = Image.fromarray(mapColor(*data))
-    # addScale(im, data[1], data[2], 30, 400, (im.width - 40, im.height//2 - 200))
+    print(data[1],data[2])
+    addScale(im, data[1], data[2], 30, 400, (im.width - 40, im.height//2 - 200))
     fname = '{}/{}'.format(outputfolderName,filename)
     im.save(fname)
     return fname
