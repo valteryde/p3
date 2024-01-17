@@ -762,7 +762,7 @@ def analyzeFromFolderHeavyWork(files, baseoutputfolder, fpath):
         newoutput = outputfolder+'-'+str(v)
         createFolder(newoutput)
         retrieveTempFromFiles(files, mask, (maskpos[0]+int(v), maskpos[1]), newoutput)
-        shutil.copy(os.path.join('debug','mask','irdata_501.png'), os.path.join(newoutput, str(v)+'.png'))
+        shutil.copy(os.path.join('debug','mask','irdata_500.png'), os.path.join(newoutput, str(v)+'.png'))
         shutil.copy(showImage(newoutput), os.path.join(newoutput, 'graf.png'))
 
     pg.app.exit()
